@@ -70,4 +70,6 @@ dependencies {
     // 4. Image Loading (Coil) - Untuk memuat foto kapal & spesies
     implementation(libs.coil.compose)
 
+    implementation(libs.androidx.core.splashscreen)
+
 }

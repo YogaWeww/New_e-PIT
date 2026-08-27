@@ -4,6 +4,9 @@ package com.example.newe_pit.ui.navigation
  * Sealed class yang mendefinisikan seluruh rute layar (destinasi) aplikasi e-PIT
  */
 sealed class Screen(val route: String, val title: String) {
+    // Onboarding Flow
+    object Onboarding : Screen("onboarding", "Onboarding")
+
     // Auth Flow
     object SignIn : Screen("signin", "Masuk")
     object VerifyBkp : Screen("verify_bkp", "Verifikasi eBKP")

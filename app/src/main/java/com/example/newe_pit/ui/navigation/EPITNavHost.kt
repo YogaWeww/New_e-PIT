@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
+import com.example.newe_pit.ui.screens.OnboardingScreen
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
@@ -27,10 +28,11 @@ fun EPITMainAppHost(
     logbookViewModel: LogbookViewModel
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.SignIn.route
+    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Onboarding.route
 
-    // Layar Auth (SignIn, Verify, Activation) tidak menampilkan BottomBar
+    // Layar Onboarding & Auth tidak menampilkan BottomBar
     val hideBottomBar = currentRoute in listOf(
+        Screen.Onboarding.route,
         Screen.SignIn.route,
         Screen.VerifyBkp.route,
         Screen.Activation.route
@@ -56,12 +58,23 @@ fun EPITMainAppHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.SignIn.route,
+            startDestination = Screen.Onboarding.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Rute Auth akan kita hubungkan ke Composable Screen masing-masing
+            // Onboarding
+            composable(Screen.Onboarding.route) {
+                OnboardingScreen(
+                    onFinishOnboarding = {
+                        navController.navigate(Screen.SignIn.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
+            // Rute Auth
             composable(Screen.SignIn.route) {
-                // Temporary Placeholder sebelum Screen dibuat
+                // Temporary Placeholder
             }
             composable(Screen.VerifyBkp.route) {
                 // Temporary Placeholder
