@@ -12,6 +12,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
 import com.example.newe_pit.ui.screens.OnboardingScreen
+import com.example.newe_pit.ui.screens.SignInScreen
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
@@ -74,7 +75,17 @@ fun EPITMainAppHost(
 
             // Rute Auth
             composable(Screen.SignIn.route) {
-                // Temporary Placeholder
+                SignInScreen(
+                    authViewModel = authViewModel,
+                    onNavigateHome = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.SignIn.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateRegister = {
+                        navController.navigate(Screen.VerifyBkp.route)
+                    }
+                )
             }
             composable(Screen.VerifyBkp.route) {
                 // Temporary Placeholder
