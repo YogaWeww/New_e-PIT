@@ -1,4 +1,4 @@
-package com.example.newe_pit.data
+package com.example.newe_pit.data.model
 
 /**
  * Model Sesi Pengguna saat Login / Aktivasi
