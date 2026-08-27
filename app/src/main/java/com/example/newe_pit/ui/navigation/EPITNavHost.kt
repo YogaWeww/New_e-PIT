@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
+import com.example.newe_pit.ui.screens.ActivationScreen
 import com.example.newe_pit.ui.screens.OnboardingScreen
 import com.example.newe_pit.ui.screens.SignInScreen
 import com.example.newe_pit.ui.screens.VerifyBkpScreen
@@ -100,7 +101,17 @@ fun EPITMainAppHost(
                 )
             }
             composable(Screen.Activation.route) {
-                // Temporary Placeholder
+                ActivationScreen(
+                    authViewModel = authViewModel,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateHome = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    }
+                )
             }
 
             // Rute Utama & Logbook

@@ -16,7 +16,7 @@ class AuthRepository {
 
     private val _currentUserSession = MutableStateFlow(
         UserSession(
-            noregBkp = "A000029",
+            noregBkp = "A00029",
             email = "digitalisasi01@maganghub.co.id",
             vesselName = "KMN. DIGITALISASI 01",
             role = UserRole.CAPTAIN,
@@ -30,10 +30,11 @@ class AuthRepository {
      */
     suspend fun verifyBkp(noregBkp: String): Result<VesselInfo> {
         delay(800) // Simulasi delay jaringan
-        return if (noregBkp.equals("A000029", ignoreCase = true)) {
+        // Menerima "A00029" maupun "A000029"
+        return if (noregBkp.equals("A00029", ignoreCase = true) || noregBkp.equals("A000029", ignoreCase = true)) {
             Result.success(
                 VesselInfo(
-                    bkpNumber = "A000029",
+                    bkpNumber = "A00029",
                     vesselName = "KMN. DIGITALISASI 01",
                     grossTonnage = 48,
                     ownerName = "PT. BA***",
