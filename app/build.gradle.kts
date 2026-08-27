@@ -56,4 +56,18 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // 1. MVVM & Lifecycle Component (ViewModel & StateFlow)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+
+    // 2. Navigation Compose
+    implementation(libs.androidx.navigation.compose)
+
+    // 3. Material Icons Extended (Untuk ikon Anchor, Ship, Fish, dll)
+    implementation(libs.androidx.material.icons.extended)
+
+    // 4. Image Loading (Coil) - Untuk memuat foto kapal & spesies
+    implementation(libs.coil.compose)
+
 }
