@@ -13,6 +13,10 @@ import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
 import com.example.newe_pit.ui.screens.ActivationScreen
 import com.example.newe_pit.ui.screens.HomeScreen
+import com.example.newe_pit.ui.screens.LogbookStep1Screen
+import com.example.newe_pit.ui.screens.LogbookStep2Screen
+import com.example.newe_pit.ui.screens.LogbookStep3Screen
+import com.example.newe_pit.ui.screens.LogbookStep4Screen
 import com.example.newe_pit.ui.screens.OnboardingScreen
 import com.example.newe_pit.ui.screens.SignInScreen
 import com.example.newe_pit.ui.screens.VerifyBkpScreen
@@ -125,16 +129,36 @@ fun EPITMainAppHost(
                 )
             }
             composable(Screen.LogbookStep1.route) {
-                // Temporary Placeholder
+                LogbookStep1Screen(
+                    logbookViewModel = logbookViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNextStep = { navController.navigate(Screen.LogbookStep2.route) }
+                )
             }
             composable(Screen.LogbookStep2.route) {
-                // Temporary Placeholder
+                LogbookStep2Screen(
+                    logbookViewModel = logbookViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNextStep = { navController.navigate(Screen.LogbookStep3.route) }
+                )
             }
             composable(Screen.LogbookStep3.route) {
-                // Temporary Placeholder
+                LogbookStep3Screen(
+                    logbookViewModel = logbookViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCart = { navController.navigate(Screen.LogbookStep4.route) }
+                )
             }
             composable(Screen.LogbookStep4.route) {
-                // Temporary Placeholder
+                LogbookStep4Screen(
+                    logbookViewModel = logbookViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToHome = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(Screen.Documents.route) {
                 // Temporary Placeholder
