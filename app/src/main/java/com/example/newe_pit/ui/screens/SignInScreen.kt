@@ -1,5 +1,6 @@
 package com.example.newe_pit.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -7,15 +8,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Phonelink
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.newe_pit.R
 import com.example.newe_pit.ui.components.EPITPasswordField
 import com.example.newe_pit.ui.components.EPITPrimaryButton
 import com.example.newe_pit.ui.components.EPITTextField
@@ -59,19 +61,13 @@ fun SignInScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.logo_epit),
+                    contentDescription = "Logo e-PIT",
                     modifier = Modifier
-                        .size(90.dp)
-                        .background(Color(0xFFE0F7FA), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Phonelink,
-                        contentDescription = "Logo e-PIT",
-                        tint = ActionCyan,
-                        modifier = Modifier.size(46.dp)
-                    )
-                }
+                        .size(100.dp)
+                        .padding(4.dp)
+                )
 
                 Spacer(modifier = Modifier.height(20.dp))
 

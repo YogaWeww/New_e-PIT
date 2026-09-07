@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,8 +14,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.Phonelink
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SetMeal
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,8 +36,7 @@ import com.example.newe_pit.ui.theme.StopRed
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
- * Layar Logbook Step 3: Form Input Spesies & Stepper Kontrol Berat/Jumlah.
- * Dilengkapi Shopping Cart Metaphor Badge untuk meninjau hasil tangkapan.
+ * Layar Logbook Step 3: Katalog Spesies Scrollable & Input Tangkapan Presisi (Manual Typing + Quick Adjustment).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -131,7 +133,7 @@ fun LogbookStep3Screen(
                 .background(Color(0xFFF8FAFC))
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             OutlinedTextField(
                 value = searchQuery,
@@ -155,51 +157,82 @@ fun LogbookStep3Screen(
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Text(
-                text = "KATALOG SPESIES PILIHAN WPP 718",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF94A3B8),
-                letterSpacing = 1.sp
-            )
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                filteredSpecies.take(2).forEach { species ->
-                    val isSelected = selectedSpecies == species.name
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected) Color(0xFFE0F7FA) else CardSurface
-                        ),
-                        modifier = Modifier
-                            .weight(1f)
-                            .border(
-                                1.5.dp,
-                                if (isSelected) ActionCyan else CardBorder,
-                                RoundedCornerShape(12.dp)
-                            )
-                            .clickable { selectedSpecies = species.name }
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                Text(
+                    text = "KATALOG SPESIES WPP 718",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 1.sp
+                )
+                Text(
+                    text = "${filteredSpecies.size} Jenis (Scrollable)",
+                    fontSize = 11.sp,
+                    color = ActionCyan,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            // Grid Spesies Scrollable dalam Container Berukuran Terukur (Maksimal 220dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .background(Color.White, RoundedCornerShape(12.dp))
+                    .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                    .padding(8.dp)
+            ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredSpecies) { species ->
+                        val isSelected = selectedSpecies == species.name
+                        Card(
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) Color(0xFFE0F7FA) else Color(0xFFF8FAFC)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(
+                                    1.5.dp,
+                                    if (isSelected) ActionCyan else CardBorder,
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { selectedSpecies = species.name }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Phonelink,
-                                contentDescription = null,
-                                tint = ActionCyan,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = species.name,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryNavy
-                            )
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SetMeal,
+                                    contentDescription = null,
+                                    tint = ActionCyan,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Column {
+                                    Text(
+                                        text = species.name,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryNavy
+                                    )
+                                    Text(
+                                        text = species.code,
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF64748B)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -213,26 +246,26 @@ fun LogbookStep3Screen(
                     color = ActionCyan
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 EPITStepperControl(
-                    label = "Berat (kg)",
+                    label = "Berat (kg) - Ketik manual atau gunakan tombol:",
                     value = weightKg,
                     onValueChange = { weightKg = it },
-                    stepSizes = listOf(10, 50)
+                    quickSteps = listOf(10, 50)
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 EPITStepperControl(
-                    label = "Jumlah (ekor)",
+                    label = "Jumlah (ekor) - Ketik manual atau gunakan tombol:",
                     value = quantityCount,
                     onValueChange = { quantityCount = it },
-                    stepSizes = listOf(1, 5)
+                    quickSteps = listOf(1, 5)
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             EPITPrimaryButton(
                 text = "Tambah ke Daftar Tangkapan",

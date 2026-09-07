@@ -303,7 +303,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Mulai Operations Logbook",
+                                text = "Lihat Semua Riwayat",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )

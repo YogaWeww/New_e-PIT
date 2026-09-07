@@ -91,12 +91,12 @@ fun LogbookStep2Screen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp)
+                        .height(160.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(PrimaryNavy)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.onboarding_2),
+                        painter = painterResource(id = R.drawable.gambar_kapal),
                         contentDescription = "Foto Perendaman",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -104,15 +104,16 @@ fun LogbookStep2Screen(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.55f))
+                            .background(Color.Black.copy(alpha = 0.45f))
                     )
                     Text(
                         text = "KMN. DIGITALISASI 01",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
                         color = Color.White,
                         modifier = Modifier
-                            .align(Alignment.Center)
+                            .align(Alignment.BottomStart)
+                            .padding(16.dp)
                     )
                 }
 

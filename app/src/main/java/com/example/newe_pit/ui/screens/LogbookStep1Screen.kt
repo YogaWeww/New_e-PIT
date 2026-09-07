@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.R
 import com.example.newe_pit.ui.components.EPITCardContainer
-import com.example.newe_pit.ui.components.EPITOutlinedButton
 import com.example.newe_pit.ui.components.EPITPrimaryButton
 import com.example.newe_pit.ui.components.StatusBadge
 import com.example.newe_pit.ui.theme.ActionCyan
@@ -95,7 +94,7 @@ fun LogbookStep1Screen(
                         .background(PrimaryNavy)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.onboarding_1),
+                        painter = painterResource(id = R.drawable.gambar_kapal),
                         contentDescription = "Foto Kapal",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
