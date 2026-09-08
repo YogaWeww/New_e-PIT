@@ -12,6 +12,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
 import com.example.newe_pit.ui.screens.ActivationScreen
+import com.example.newe_pit.ui.screens.DocumentScreen
 import com.example.newe_pit.ui.screens.HomeScreen
 import com.example.newe_pit.ui.screens.LogbookStep1Screen
 import com.example.newe_pit.ui.screens.LogbookStep2Screen
@@ -160,9 +161,14 @@ fun EPITMainAppHost(
                     }
                 )
             }
+
+            // Rute Dompet Dokumen Kapal
             composable(Screen.Documents.route) {
-                // Temporary Placeholder
+                DocumentScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
+
             composable(Screen.Notif.route) {
                 // Temporary Placeholder
             }
