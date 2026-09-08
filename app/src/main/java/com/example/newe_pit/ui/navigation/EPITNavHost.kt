@@ -169,6 +169,18 @@ fun EPITMainAppHost(
                 )
             }
 
+            // Rute Laporan Pendaratan Trip & STBLKK
+            composable(Screen.LandingReport.route) {
+                LandingReportScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onFinishReport = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             // Rute Dompet Dokumen Kapal
             composable(Screen.Documents.route) {
                 DocumentScreen(
