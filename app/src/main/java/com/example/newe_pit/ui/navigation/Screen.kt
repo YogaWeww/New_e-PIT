@@ -23,4 +23,8 @@ sealed class Screen(val route: String, val title: String) {
     object LogbookStep2 : Screen("logbook_2", "Logbook - Perendaman")
     object LogbookStep3 : Screen("logbook_3", "Detail Tangkapan")
     object LogbookStep4 : Screen("logbook_4", "Daftar Tangkapan")
+
+    // Alih Muat & Laporan Akhir Trip Flow
+    object Transshipment : Screen("transshipment", "Alih Muatan")
+    object LandingReport : Screen("landing_report", "Laporan Pendaratan")
 }

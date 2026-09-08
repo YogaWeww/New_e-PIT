@@ -3,6 +3,7 @@ package com.example.newe_pit.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.R
 import com.example.newe_pit.ui.components.EPITCardContainer
+import com.example.newe_pit.ui.components.EPITOutlinedButton
 import com.example.newe_pit.ui.components.EPITPrimaryButton
 import com.example.newe_pit.ui.components.StatusBadge
 import com.example.newe_pit.ui.theme.ActionCyan
@@ -37,14 +39,15 @@ import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
  * Layar Logbook Step 1: Ready to Setting (Sebelum Alat Tangkap Diturunkan).
- * Menampilkan status GPS aktif, informasi kapal, kalibrasi, serta CTA "Mulai Setting".
+ * Menampilkan status GPS aktif, informasi kapal, kalibrasi, serta akses Alih Muatan.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogbookStep1Screen(
     logbookViewModel: LogbookViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToNextStep: () -> Unit
+    onNavigateToNextStep: () -> Unit,
+    onNavigateToTransshipment: () -> Unit = {}
 ) {
     var isRecalibrating by remember { mutableStateOf(false) }
 
@@ -94,7 +97,7 @@ fun LogbookStep1Screen(
                         .background(PrimaryNavy)
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.gambar_kapal),
+                        painter = painterResource(id = R.drawable.onboarding_1),
                         contentDescription = "Foto Kapal",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
@@ -177,6 +180,7 @@ fun LogbookStep1Screen(
                     }
                 }
 
+                // Tombol Aksi Sekunder (Alih Muatan & Sampling)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -187,6 +191,7 @@ fun LogbookStep1Screen(
                         modifier = Modifier
                             .weight(1f)
                             .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                            .clickable { onNavigateToTransshipment() }
                     ) {
                         Row(
                             modifier = Modifier.padding(12.dp),

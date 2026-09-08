@@ -35,7 +35,9 @@ fun EPITMainAppHost(
         Screen.Onboarding.route,
         Screen.SignIn.route,
         Screen.VerifyBkp.route,
-        Screen.Activation.route
+        Screen.Activation.route,
+        Screen.Transshipment.route,
+        Screen.LandingReport.route
     )
 
     Scaffold(
@@ -58,7 +60,7 @@ fun EPITMainAppHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route, // Diubah langsung ke Beranda untuk kemudahan testing
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
             // Onboarding
@@ -117,6 +119,9 @@ fun EPITMainAppHost(
                     homeViewModel = homeViewModel,
                     onNavigateToLogbook = {
                         navController.navigate(Screen.LogbookStep1.route)
+                    },
+                    onNavigateToTransshipment = {
+                        navController.navigate(Screen.Transshipment.route)
                     }
                 )
             }
@@ -124,7 +129,8 @@ fun EPITMainAppHost(
                 LogbookStep1Screen(
                     logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToNextStep = { navController.navigate(Screen.LogbookStep2.route) }
+                    onNavigateToNextStep = { navController.navigate(Screen.LogbookStep2.route) },
+                    onNavigateToTransshipment = { navController.navigate(Screen.Transshipment.route) }
                 )
             }
             composable(Screen.LogbookStep2.route) {
@@ -149,6 +155,16 @@ fun EPITMainAppHost(
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
+                    }
+                )
+            }
+
+            // Rute Alih Muat (Transshipment)
+            composable(Screen.Transshipment.route) {
+                TransshipmentScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onProceedToLandingReport = {
+                        navController.navigate(Screen.LandingReport.route)
                     }
                 )
             }

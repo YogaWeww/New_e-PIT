@@ -19,8 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +34,8 @@ import com.example.newe_pit.ui.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    onNavigateToLogbook: () -> Unit
+    onNavigateToLogbook: () -> Unit,
+    onNavigateToTransshipment: () -> Unit = {}
 ) {
     val vesselInfo by homeViewModel.vesselInfo.collectAsState()
     val recentHauls by homeViewModel.recentHauls.collectAsState()
@@ -154,7 +153,6 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        // Progress Bar Container
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -239,12 +237,12 @@ fun HomeScreen(
                         QuickActionButton(
                             label = "Alih Muatan",
                             icon = Icons.Default.MoveToInbox,
-                            onClick = { }
+                            onClick = onNavigateToTransshipment
                         )
                         QuickActionButton(
                             label = "Keberangkatan",
                             icon = Icons.Default.DirectionsBoat,
-                            onClick = { }
+                            onClick = { homeViewModel.showToast("Fitur Keberangkatan Kapal") }
                         )
                         QuickActionButton(
                             label = "Pendaratan",
@@ -254,12 +252,12 @@ fun HomeScreen(
                         QuickActionButton(
                             label = "Kuota",
                             icon = Icons.Default.PieChart,
-                            onClick = { }
+                            onClick = { homeViewModel.showToast("Detail Rincian Kuota") }
                         )
                         QuickActionButton(
                             label = "Lainnya",
                             icon = Icons.Default.GridView,
-                            onClick = { }
+                            onClick = { homeViewModel.showToast("Menu Fitur Lainnya") }
                         )
                     }
                 }
@@ -303,7 +301,7 @@ fun HomeScreen(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "Lihat Semua Riwayat",
+                                text = "Mulai Operations Logbook",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
