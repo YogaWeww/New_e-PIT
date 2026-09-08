@@ -21,32 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.example.newe_pit.data.model.DocStatusType
+import com.example.newe_pit.data.model.VesselDocItem
 import com.example.newe_pit.ui.theme.*
 
-/**
- * Status Tipe Dokumen untuk Visual Badge
- */
-enum class DocStatusType {
-    ACTIVE,      // Hijau (Berlaku)
-    PENDING,     // Kuning (Menunggu Verifikasi / Tagihan)
-    EXPIRING     // Merah (Segera Kedaluwarsa)
-}
-
-/**
- * Model Data Item Dokumen Perizinan Kapal
- */
-data class VesselDocItem(
-    val id: String,
-    val title: String,
-    val docNumber: String,
-    val issuer: String,
-    val validityDate: String,
-    val statusLabel: String,
-    val statusType: DocStatusType,
-    val category: String, // "Aktif", "Proses", "Riwayat"
-    val note: String? = null,
-    val paymentAmount: String? = null
-)
 
 /**
  * Layar Dompet Dokumen Kapal (Document Wallet)

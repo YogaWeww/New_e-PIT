@@ -17,28 +17,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.newe_pit.data.model.NotificationItem
+import com.example.newe_pit.data.model.NotificationType
 import com.example.newe_pit.ui.theme.*
-
-/**
- * Tipe Kategori Notifikasi e-PIT
- */
-enum class NotificationType {
-    DOCUMENT_EXPIRY, // Peringatan Dokumen (Merah/Kuning)
-    SYNC_STATUS,     // Sinkronisasi Data Hauling (Hijau)
-    WEATHER_WARNING  // Peringatan Dini Cuaca & Gelombang WPP (Biru)
-}
-
-/**
- * Model Data Notifikasi
- */
-data class NotificationItem(
-    val id: String,
-    val title: String,
-    val description: String,
-    val timestamp: String,
-    val type: NotificationType,
-    val isUnread: Boolean = true
-)
 
 /**
  * Layar Pusat Notifikasi & Informasi (Notification Screen)
