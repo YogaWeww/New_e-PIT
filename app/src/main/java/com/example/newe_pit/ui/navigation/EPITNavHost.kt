@@ -11,17 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.newe_pit.ui.components.EPITBottomNavigationBar
-import com.example.newe_pit.ui.screens.ActivationScreen
-import com.example.newe_pit.ui.screens.DocumentScreen
-import com.example.newe_pit.ui.screens.HomeScreen
-import com.example.newe_pit.ui.screens.LogbookStep1Screen
-import com.example.newe_pit.ui.screens.LogbookStep2Screen
-import com.example.newe_pit.ui.screens.LogbookStep3Screen
-import com.example.newe_pit.ui.screens.LogbookStep4Screen
-import com.example.newe_pit.ui.screens.OnboardingScreen
-import com.example.newe_pit.ui.screens.ProfileScreen
-import com.example.newe_pit.ui.screens.SignInScreen
-import com.example.newe_pit.ui.screens.VerifyBkpScreen
+import com.example.newe_pit.ui.screens.*
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
@@ -38,7 +28,7 @@ fun EPITMainAppHost(
     logbookViewModel: LogbookViewModel
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Onboarding.route
+    val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
     // Layar Onboarding & Auth tidak menampilkan BottomBar
     val hideBottomBar = currentRoute in listOf(
@@ -68,14 +58,14 @@ fun EPITMainAppHost(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Onboarding.route,
+            startDestination = Screen.Home.route, // Diubah langsung ke Beranda untuk kemudahan testing
             modifier = Modifier.padding(innerPadding)
         ) {
             // Onboarding
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     onFinishOnboarding = {
-                        navController.navigate(Screen.SignIn.route) {
+                        navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Onboarding.route) { inclusive = true }
                         }
                     }
@@ -115,7 +105,7 @@ fun EPITMainAppHost(
                     },
                     onNavigateHome = {
                         navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                            popUpTo(Screen.SignIn.route) { inclusive = true }
                         }
                     }
                 )
@@ -170,8 +160,11 @@ fun EPITMainAppHost(
                 )
             }
 
+            // Rute Notifikasi & Informasi
             composable(Screen.Notif.route) {
-                // Temporary Placeholder
+                NotificationScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // Rute Profil Kapal

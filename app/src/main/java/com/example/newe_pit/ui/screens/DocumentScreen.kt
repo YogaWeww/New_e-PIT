@@ -2,12 +2,10 @@ package com.example.newe_pit.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -26,16 +24,16 @@ import androidx.compose.ui.window.Dialog
 import com.example.newe_pit.ui.theme.*
 
 /**
- * Kategori status dokumen perizinan kapal
+ * Status Tipe Dokumen untuk Visual Badge
  */
 enum class DocStatusType {
-    ACTIVE,      // Hijau (Berlaku / Laik)
-    PENDING,     // Kuning (Menunggu Verifikasi / Tagihan Belum Dibayar)
-    EXPIRING     // Merah (Mendekati Kedaluwarsa)
+    ACTIVE,      // Hijau (Berlaku)
+    PENDING,     // Kuning (Menunggu Verifikasi / Tagihan)
+    EXPIRING     // Merah (Segera Kedaluwarsa)
 }
 
 /**
- * Model data dokumen kapal e-PIT
+ * Model Data Item Dokumen Perizinan Kapal
  */
 data class VesselDocItem(
     val id: String,
@@ -51,19 +49,19 @@ data class VesselDocItem(
 )
 
 /**
- * Layar Dompet Dokumen Kapal (Digital Document Wallet)
- * Menyimpan identitas paspor kapal, QR Code pemeriksaan laut, dan daftar surat izin resmi KKP.
+ * Layar Dompet Dokumen Kapal (Document Wallet)
+ * Fokus menampilkan daftar perizinan resmi KKP dengan filter kategori dan pratinjau PDF.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     var selectedCategoryTab by remember { mutableStateOf("Semua") }
-    var showQrModal by remember { mutableStateOf(false) }
     var selectedDocPreview by remember { mutableStateOf<VesselDocItem?>(null) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
-    // Data simulasi dokumen resmi siklus perizinan kapal KKP
+    // Data Simulasi Dokumen Siklus e-PIT KKP
     val documentList = remember {
         listOf(
             VesselDocItem(
@@ -140,26 +138,18 @@ fun DocumentScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header Top Bar
-            Surface(
-                color = Color.White,
-                shadowElevation = 2.dp
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            // Top App Bar yang Konsisten
+            TopAppBar(
+                title = {
                     Text(
-                        text = "Dompet Dokumen Kapal",
+                        text = "Dokumen Kapal",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryNavy
                     )
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
 
             LazyColumn(
                 modifier = Modifier
@@ -168,18 +158,7 @@ fun DocumentScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. KARTU PASPOR DIGITAL KAPAL
-                item {
-                    VesselDigitalPassportCard(
-                        vesselName = "KMN. DIGITALISASI 01",
-                        noregBkp = "A000029",
-                        grossTonnage = 48,
-                        ownerName = "PT. BA***",
-                        onShowQrClick = { showQrModal = true }
-                    )
-                }
-
-                // 2. SEGMENTED FILTER TABS
+                // Segmented Filter Tabs
                 item {
                     val tabs = listOf("Semua", "Aktif", "Proses", "Riwayat")
                     Row(
@@ -211,7 +190,7 @@ fun DocumentScreen(
                     }
                 }
 
-                // 3. DAFTAR KARTU DOKUMEN
+                // Daftar Kartu Dokumen
                 items(filteredDocuments) { doc ->
                     VesselDocumentCard(
                         doc = doc,
@@ -227,15 +206,6 @@ fun DocumentScreen(
                 }
             }
         }
-    }
-
-    // Modal QR Code Pemeriksaan Petugas Laut
-    if (showQrModal) {
-        VesselQrInspectionDialog(
-            vesselName = "KMN. DIGITALISASI 01",
-            noregBkp = "A000029",
-            onDismiss = { showQrModal = false }
-        )
     }
 
     // Modal Pratinjau Dokumen PDF
@@ -280,114 +250,6 @@ fun DocumentScreen(
 }
 
 /**
- * Komponen Paspor Digital Kapal
- */
-@Composable
-private fun VesselDigitalPassportCard(
-    vesselName: String,
-    noregBkp: String,
-    grossTonnage: Int,
-    ownerName: String,
-    onShowQrClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "PASPOR DIGITAL KAPAL",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ActionCyan,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = vesselName,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .background(Color.White.copy(alpha = 0.12f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsBoat,
-                        contentDescription = "Ikon Kapal",
-                        tint = ActionCyan,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Rincian Spesifikasi Kapal
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF15263F), RoundedCornerShape(12.dp))
-                    .padding(12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(text = "Nomor eBKP", fontSize = 10.sp, color = Color(0xFF94A3B8))
-                    Text(text = noregBkp, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-                Column {
-                    Text(text = "Bobot Kapal", fontSize = 10.sp, color = Color(0xFF94A3B8))
-                    Text(text = "$grossTonnage GT", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-                Column {
-                    Text(text = "Pemilik", fontSize = 10.sp, color = Color(0xFF94A3B8))
-                    Text(text = ownerName, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // Tombol Tampilkan QR Code Pemeriksaan
-            Button(
-                onClick = onShowQrClick,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ActionCyan,
-                    contentColor = PrimaryNavy
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Tampilkan QR Pemeriksaan Laut",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-/**
  * Komponen Kartu Satuan Dokumen Perizinan
  */
 @Composable
@@ -406,7 +268,6 @@ private fun VesselDocumentCard(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Header Dokumen & Badge Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -446,7 +307,6 @@ private fun VesselDocumentCard(
                     }
                 }
 
-                // Badge Status Warna Tegas
                 val (badgeBg, badgeText) = when (doc.statusType) {
                     DocStatusType.ACTIVE -> Color(0xFFD1FAE5) to StatusGreen
                     DocStatusType.PENDING -> Color(0xFFFEF3C7) to Color(0xFFD97706)
@@ -469,7 +329,6 @@ private fun VesselDocumentCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Rincian Detail Dokumen
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -495,7 +354,6 @@ private fun VesselDocumentCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Tombol Aksi (Lihat PDF & Simpan Offline)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -523,99 +381,6 @@ private fun VesselDocumentCard(
                     Icon(imageVector = Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp), tint = ActionCyan)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = "Simpan Offline", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Modal Dialog QR Code Pemeriksaan Laut untuk Petugas SDKP / Polair
- */
-@Composable
-private fun VesselQrInspectionDialog(
-    vesselName: String,
-    noregBkp: String,
-    onDismiss: () -> Unit
-) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "QR Paspor Pemeriksaan Laut",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryNavy
-                )
-                Text(
-                    text = "Tunjukkan kepada petugas pengawas PSDKP/KKP",
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Simulasi Struktur Grafis QR Code
-                Box(
-                    modifier = Modifier
-                        .size(200.dp)
-                        .background(Color.White, RoundedCornerShape(16.dp))
-                        .border(2.dp, PrimaryNavy, RoundedCornerShape(16.dp))
-                        .padding(14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Box(modifier = Modifier.size(42.dp).background(PrimaryNavy, RoundedCornerShape(6.dp)))
-                            Box(modifier = Modifier.size(42.dp).background(PrimaryNavy, RoundedCornerShape(6.dp)))
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                            Box(modifier = Modifier.size(36.dp).background(ActionCyan, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.DirectionsBoat, contentDescription = null, tint = PrimaryNavy, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Box(modifier = Modifier.size(42.dp).background(PrimaryNavy, RoundedCornerShape(6.dp)))
-                            Box(modifier = Modifier.size(24.dp).background(PrimaryNavy, RoundedCornerShape(4.dp)))
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "$vesselName | eBKP: $noregBkp",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryNavy
-                )
-                Text(
-                    text = "Token: EPIT-PSDKP-718-VALID",
-                    fontSize = 10.sp,
-                    color = Color(0xFF94A3B8),
-                    fontFamily = FontFamily.Monospace
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryNavy),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(text = "Tutup QR", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -658,7 +423,6 @@ private fun DocumentPdfPreviewDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Simulasi Kertas Dokumen Resmi KKP
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
