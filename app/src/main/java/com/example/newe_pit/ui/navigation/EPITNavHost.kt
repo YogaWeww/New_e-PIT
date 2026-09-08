@@ -19,6 +19,7 @@ import com.example.newe_pit.ui.screens.LogbookStep2Screen
 import com.example.newe_pit.ui.screens.LogbookStep3Screen
 import com.example.newe_pit.ui.screens.LogbookStep4Screen
 import com.example.newe_pit.ui.screens.OnboardingScreen
+import com.example.newe_pit.ui.screens.ProfileScreen
 import com.example.newe_pit.ui.screens.SignInScreen
 import com.example.newe_pit.ui.screens.VerifyBkpScreen
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
@@ -172,8 +173,17 @@ fun EPITMainAppHost(
             composable(Screen.Notif.route) {
                 // Temporary Placeholder
             }
+
+            // Rute Profil Kapal
             composable(Screen.Profile.route) {
-                // Temporary Placeholder
+                ProfileScreen(
+                    authViewModel = authViewModel,
+                    onSignOut = {
+                        navController.navigate(Screen.SignIn.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
             }
         }
     }
