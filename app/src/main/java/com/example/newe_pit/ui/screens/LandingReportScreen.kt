@@ -26,7 +26,8 @@ import com.example.newe_pit.ui.theme.*
 
 /**
  * Layar Laporan Pendaratan Trip & Permohonan STBLKK
- * Menggunakan dropdown pilihan pelabuhan resmi KKP sesuai standar operasional.
+ * Disertai opsi Jenis Kedatangan, Tujuan Kedatangan (Bongkar, Muat, Isi Perbekalan, Docking),
+ * serta dropdown Pelabuhan Pendaratan resmi KKP dengan desain modern kartu bersih.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,11 +37,22 @@ fun LandingReportScreen(
 ) {
     var fuelInput by remember { mutableStateOf("450") }
 
+    // Pilihan Jenis Kedatangan
+    val arrivalTypeOptions = listOf("Biasa", "Darurat", "Karam/Hilang")
+    var selectedArrivalType by remember { mutableStateOf(arrivalTypeOptions[0]) }
+    var expandedArrivalDropdown by remember { mutableStateOf(false) }
+
+    // Opsi Tujuan Kedatangan (Checkbox states)
+    var isBongkarChecked by remember { mutableStateOf(true) }
+    var isMuatChecked by remember { mutableStateOf(false) }
+    var isIsiPerbekalanChecked by remember { mutableStateOf(false) }
+    var isDockingChecked by remember { mutableStateOf(false) }
+
     // Daftar Pilihan Pelabuhan Resmi KKP
     val portOptions = listOf(
-        "PP. Nizam Zachman Jakarta",
-        "PPN Ambon",
         "PP. Dobo",
+        "PPN Ambon",
+        "PP. Nizam Zachman Jakarta",
         "PPN Tual",
         "PPN Bitung",
         "PPS Kendari",
@@ -62,7 +74,7 @@ fun LandingReportScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Laporan Pendaratan",
+                        text = "Laporan Pendaratan & STBLKK",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryNavy
@@ -85,9 +97,9 @@ fun LandingReportScreen(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. Informasi Lokasi & Durasi Trip
+                // 1. Informasi Lokasi & Durasi Trip (Otomatis)
                 EPITCardContainer {
                     Text(
                         text = "INFORMASI LOKASI & DURASI TRIP",
@@ -114,7 +126,98 @@ fun LandingReportScreen(
                     }
                 }
 
-                // 2. Input Manual Operasional (BBM & Dropdown Pelabuhan)
+                // 2. Jenis & Tujuan Kedatangan KKP
+                EPITCardContainer {
+                    Text(
+                        text = "JENIS & TUJUAN KEDATANGAN",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF94A3B8),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(text = "Jenis Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Dropdown Jenis Kedatangan
+                    ExposedDropdownMenuBox(
+                        expanded = expandedArrivalDropdown,
+                        onExpandedChange = { expandedArrivalDropdown = !expandedArrivalDropdown },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedArrivalType,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedArrivalDropdown) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expandedArrivalDropdown,
+                            onDismissRequest = { expandedArrivalDropdown = false }
+                        ) {
+                            arrivalTypeOptions.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(text = type, fontSize = 13.sp) },
+                                    onClick = {
+                                        selectedArrivalType = type
+                                        expandedArrivalDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(text = "Tujuan Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Grid Checkbox Tujuan Kedatangan (2x2)
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Checkbox(
+                                    checked = isBongkarChecked,
+                                    onCheckedChange = { isBongkarChecked = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
+                                )
+                                Text(text = "Bongkar", fontSize = 12.sp, color = PrimaryNavy)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Checkbox(
+                                    checked = isMuatChecked,
+                                    onCheckedChange = { isMuatChecked = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
+                                )
+                                Text(text = "Muat", fontSize = 12.sp, color = PrimaryNavy)
+                            }
+                        }
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Checkbox(
+                                    checked = isIsiPerbekalanChecked,
+                                    onCheckedChange = { isIsiPerbekalanChecked = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
+                                )
+                                Text(text = "Isi Perbekalan", fontSize = 12.sp, color = PrimaryNavy)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                Checkbox(
+                                    checked = isDockingChecked,
+                                    onCheckedChange = { isDockingChecked = it },
+                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
+                                )
+                                Text(text = "Docking", fontSize = 12.sp, color = PrimaryNavy)
+                            }
+                        }
+                    }
+                }
+
+                // 3. Input Manual Operasional (BBM & Pelabuhan Pendaratan)
                 EPITCardContainer {
                     Text(
                         text = "INPUT MANUAL OPERASIONAL",
@@ -123,7 +226,7 @@ fun LandingReportScreen(
                         color = Color(0xFF94A3B8),
                         letterSpacing = 1.sp
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(text = "BBM Terpakai (Liter)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                     Spacer(modifier = Modifier.height(6.dp))
@@ -139,7 +242,7 @@ fun LandingReportScreen(
                     Text(text = "Pelabuhan Pendaratan Tujuan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Dropdown Pilihan Pelabuhan Resmi KKP
+                    // Dropdown Pelabuhan Resmi KKP
                     ExposedDropdownMenuBox(
                         expanded = expandedPortDropdown,
                         onExpandedChange = { expandedPortDropdown = !expandedPortDropdown },
@@ -155,7 +258,6 @@ fun LandingReportScreen(
                                 .menuAnchor(),
                             shape = RoundedCornerShape(10.dp)
                         )
-
                         ExposedDropdownMenu(
                             expanded = expandedPortDropdown,
                             onDismissRequest = { expandedPortDropdown = false }
@@ -173,15 +275,27 @@ fun LandingReportScreen(
                     }
                 }
 
-                // 3. Ringkasan Total Tangkapan Trip
+                // 4. Ringkasan Total Tangkapan Trip
                 EPITCardContainer {
-                    Text(
-                        text = "RINGKASAN TOTAL TANGKAPAN TRIP",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "RINGKASAN TOTAL TANGKAPAN TRIP",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8),
+                            letterSpacing = 1.sp
+                        )
+                        Text(
+                            text = "2 Spesies",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ActionCyan
+                        )
+                    }
                     Spacer(modifier = Modifier.height(10.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -197,17 +311,17 @@ fun LandingReportScreen(
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = CardBorder)
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "TOTAL CATCH (2 Spesies):", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                        Text(text = "TOTAL CATCH:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                         Text(text = "788 Kg", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = ActionCyan)
                     }
                 }
 
-                // 4. Pernyataan Hukum (Legal Compliance Checkbox)
+                // 5. Pernyataan Kebenaran Data (Legal Compliance Checkbox)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                        .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFFCD34D), RoundedCornerShape(12.dp))
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -220,7 +334,7 @@ fun LandingReportScreen(
                     Text(
                         text = "Dengan ini saya menyatakan dengan sadar dan tanpa paksaan bahwa data di atas adalah benar dan setuju dengan ketentuan yang berlaku.",
                         fontSize = 11.sp,
-                        color = Color(0xFF475569),
+                        color = Color(0xFF78350F),
                         lineHeight = 16.sp
                     )
                 }
