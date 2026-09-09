@@ -29,8 +29,8 @@ import com.example.newe_pit.ui.viewmodel.HomeViewModel
 
 /**
  * Layar Beranda (Home Screen) e-PIT Mobile.
- * Dilengkapi grid Aksi Cepat geser horizontal (horizontal scroll) dengan indikator petunjuk
- * yang mencakup Alih Muatan, Keberangkatan, Pendaratan, Link Layanan, dan Bantuan.
+ * Kartu kuota utama dapat diklik untuk membuka rincian kuota,
+ * serta bilah Aksi Cepat horizontal yang bersih tanpa duplikasi tombol kuota.
  */
 @Composable
 fun HomeScreen(
@@ -39,7 +39,8 @@ fun HomeScreen(
     onNavigateToTransshipment: () -> Unit = {},
     onNavigateToLandingReport: () -> Unit = {},
     onNavigateToServiceLinks: () -> Unit = {},
-    onNavigateToHelpSupport: () -> Unit = {}
+    onNavigateToHelpSupport: () -> Unit = {},
+    onNavigateToQuotaDetail: () -> Unit = {}
 ) {
     val vesselInfo by homeViewModel.vesselInfo.collectAsState()
     val recentHauls by homeViewModel.recentHauls.collectAsState()
@@ -111,12 +112,14 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Kartu Kuota Tangkap
+                // Kartu Kuota Tangkap (Dapat Diklik Menuju Rincian Kuota)
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
                     elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onNavigateToQuotaDetail() }
                 ) {
                     Column(
                         modifier = Modifier.padding(20.dp)
@@ -134,7 +137,7 @@ fun HomeScreen(
                             )
                             Icon(
                                 imageVector = Icons.Default.ChevronRight,
-                                contentDescription = null,
+                                contentDescription = "Buka Detail Kuota",
                                 tint = Color(0xFF94A3B8),
                                 modifier = Modifier.size(16.dp)
                             )
@@ -144,7 +147,7 @@ fun HomeScreen(
 
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(
-                                text = "10.000 ",
+                                text = "${vesselInfo.totalQuotaKg.toInt()} ",
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 color = Color.White
@@ -292,11 +295,6 @@ fun HomeScreen(
                             label = "Bantuan",
                             icon = Icons.Default.SupportAgent,
                             onClick = onNavigateToHelpSupport
-                        )
-                        QuickActionButton(
-                            label = "Kuota",
-                            icon = Icons.Default.PieChart,
-                            onClick = { homeViewModel.showToast("Detail Rincian Kuota") }
                         )
                     }
                 }

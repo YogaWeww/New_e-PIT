@@ -39,7 +39,8 @@ fun EPITMainAppHost(
         Screen.Transshipment.route,
         Screen.LandingReport.route,
         Screen.ServiceLinks.route,
-        Screen.HelpSupport.route
+        Screen.HelpSupport.route,
+        Screen.QuotaDetail.route
     )
 
     Scaffold(
@@ -133,6 +134,9 @@ fun EPITMainAppHost(
                     },
                     onNavigateToHelpSupport = {
                         navController.navigate(Screen.HelpSupport.route)
+                    },
+                    onNavigateToQuotaDetail = {
+                        navController.navigate(Screen.QuotaDetail.route)
                     }
                 )
             }
@@ -191,6 +195,13 @@ fun EPITMainAppHost(
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }
+                )
+            }
+
+            // Rute Rincian Kuota
+            composable(Screen.QuotaDetail.route) {
+                QuotaDetailScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
