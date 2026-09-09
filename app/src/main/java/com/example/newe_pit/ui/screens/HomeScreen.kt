@@ -1,9 +1,9 @@
 package com.example.newe_pit.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -28,14 +28,18 @@ import com.example.newe_pit.ui.theme.*
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 
 /**
- * Layar Dashboard Utama Beranda (Home Screen) e-PIT Mobile.
- * Mengadopsi Fintech & E-Money Card UX Style.
+ * Layar Beranda (Home Screen) e-PIT Mobile.
+ * Dilengkapi grid Aksi Cepat geser horizontal (horizontal scroll) dengan indikator petunjuk
+ * yang mencakup Alih Muatan, Keberangkatan, Pendaratan, Link Layanan, dan Bantuan.
  */
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
     onNavigateToLogbook: () -> Unit,
-    onNavigateToTransshipment: () -> Unit = {}
+    onNavigateToTransshipment: () -> Unit = {},
+    onNavigateToLandingReport: () -> Unit = {},
+    onNavigateToServiceLinks: () -> Unit = {},
+    onNavigateToHelpSupport: () -> Unit = {}
 ) {
     val vesselInfo by homeViewModel.vesselInfo.collectAsState()
     val recentHauls by homeViewModel.recentHauls.collectAsState()
@@ -49,6 +53,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
+            // Header Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -106,6 +111,7 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Kartu Kuota Tangkap
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
@@ -177,6 +183,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Status SLO & SPB
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -220,19 +227,46 @@ fun HomeScreen(
                     }
                 }
 
+                // Aksi Cepat (Horizontal Scroll dengan Indikator)
                 Column {
-                    Text(
-                        text = "AKSI CEPAT",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "AKSI CEPAT",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF94A3B8),
+                            letterSpacing = 1.sp
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Geser",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ActionCyan
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                tint = ActionCyan,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
+                    }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         QuickActionButton(
                             label = "Alih Muatan",
@@ -247,21 +281,27 @@ fun HomeScreen(
                         QuickActionButton(
                             label = "Pendaratan",
                             icon = Icons.Default.Anchor,
-                            onClick = onNavigateToLogbook
+                            onClick = onNavigateToLandingReport
+                        )
+                        QuickActionButton(
+                            label = "Link Layanan",
+                            icon = Icons.Default.Public,
+                            onClick = onNavigateToServiceLinks
+                        )
+                        QuickActionButton(
+                            label = "Bantuan",
+                            icon = Icons.Default.SupportAgent,
+                            onClick = onNavigateToHelpSupport
                         )
                         QuickActionButton(
                             label = "Kuota",
                             icon = Icons.Default.PieChart,
                             onClick = { homeViewModel.showToast("Detail Rincian Kuota") }
                         )
-                        QuickActionButton(
-                            label = "Lainnya",
-                            icon = Icons.Default.GridView,
-                            onClick = { homeViewModel.showToast("Menu Fitur Lainnya") }
-                        )
                     }
                 }
 
+                // Riwayat Hauling
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -327,11 +367,13 @@ private fun QuickActionButton(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier
+            .width(68.dp)
+            .clickable { onClick() }
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .background(Color(0xFFE0F7FA), CircleShape)
                 .border(1.dp, Color(0xFFB2EBF2), CircleShape),
             contentAlignment = Alignment.Center
@@ -340,15 +382,16 @@ private fun QuickActionButton(
                 imageVector = icon,
                 contentDescription = label,
                 tint = ActionCyan,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = label,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            color = Color(0xFF475569)
+            color = Color(0xFF475569),
+            maxLines = 1
         )
     }
 }

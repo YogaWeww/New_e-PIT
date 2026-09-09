@@ -18,7 +18,7 @@ import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
  * Komponen Utama Navigasi Aplikasi e-PIT.
- * Mengintegrasikan Scaffold, NavHost, dan EPITBottomNavigationBar.
+ * Mengintegrasikan Scaffold, NavHost, BottomBar, serta seluruh rute layanan.
  */
 @Composable
 fun EPITMainAppHost(
@@ -30,14 +30,16 @@ fun EPITMainAppHost(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Screen.Home.route
 
-    // Layar Onboarding & Auth tidak menampilkan BottomBar
+    // Layar Auth & Sub-Layar tidak menampilkan BottomBar agar tampilan fokus
     val hideBottomBar = currentRoute in listOf(
         Screen.Onboarding.route,
         Screen.SignIn.route,
         Screen.VerifyBkp.route,
         Screen.Activation.route,
         Screen.Transshipment.route,
-        Screen.LandingReport.route
+        Screen.LandingReport.route,
+        Screen.ServiceLinks.route,
+        Screen.HelpSupport.route
     )
 
     Scaffold(
@@ -113,7 +115,7 @@ fun EPITMainAppHost(
                 )
             }
 
-            // Rute Utama & Logbook
+            // Rute Utama Beranda
             composable(Screen.Home.route) {
                 HomeScreen(
                     homeViewModel = homeViewModel,
@@ -122,9 +124,20 @@ fun EPITMainAppHost(
                     },
                     onNavigateToTransshipment = {
                         navController.navigate(Screen.Transshipment.route)
+                    },
+                    onNavigateToLandingReport = {
+                        navController.navigate(Screen.LandingReport.route)
+                    },
+                    onNavigateToServiceLinks = {
+                        navController.navigate(Screen.ServiceLinks.route)
+                    },
+                    onNavigateToHelpSupport = {
+                        navController.navigate(Screen.HelpSupport.route)
                     }
                 )
             }
+
+            // Rute Logbook (4 Tahapan)
             composable(Screen.LogbookStep1.route) {
                 LogbookStep1Screen(
                     logbookViewModel = logbookViewModel,
@@ -181,6 +194,18 @@ fun EPITMainAppHost(
                 )
             }
 
+            // Rute Layanan Pendukung & Bantuan
+            composable(Screen.ServiceLinks.route) {
+                ServiceLinksScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(Screen.HelpSupport.route) {
+                HelpSupportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
             // Rute Dompet Dokumen Kapal
             composable(Screen.Documents.route) {
                 DocumentScreen(
@@ -199,6 +224,12 @@ fun EPITMainAppHost(
             composable(Screen.Profile.route) {
                 ProfileScreen(
                     authViewModel = authViewModel,
+                    onNavigateToServiceLinks = {
+                        navController.navigate(Screen.ServiceLinks.route)
+                    },
+                    onNavigateToHelpSupport = {
+                        navController.navigate(Screen.HelpSupport.route)
+                    },
                     onSignOut = {
                         navController.navigate(Screen.SignIn.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }

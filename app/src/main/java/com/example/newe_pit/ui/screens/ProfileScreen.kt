@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -22,6 +23,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.R
@@ -31,13 +33,15 @@ import com.example.newe_pit.ui.viewmodel.AuthViewModel
 
 /**
  * Layar Profil Kapal e-PIT Mobile
- * Mengadaptasi data teknis asli e-PIT KKP (Identitas kapal, perizinan, mesin, dimensi, alat tangkap)
- * dengan kartu tematik, identitas akun aktif, dan dialog konfirmasi keluar yang aman.
+ * Menampilkan data teknis kapal, perizinan, mesin, dimensi,
+ * serta akses cepat menuju Link Layanan Resmi KKP & Pusat Bantuan Helpdesk.
  */
 @Composable
 fun ProfileScreen(
     authViewModel: AuthViewModel,
-    onSignOut: () -> Unit
+    onNavigateToServiceLinks: () -> Unit = {},
+    onNavigateToHelpSupport: () -> Unit = {},
+    onSignOut: () -> Unit = {}
 ) {
     val userSession by authViewModel.userSession.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
@@ -98,7 +102,6 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // Foto Kapal Asli dari Drawable
                                 Image(
                                     painter = painterResource(id = R.drawable.gambar_kapal),
                                     contentDescription = "Foto Kapal",
@@ -185,9 +188,33 @@ fun ProfileScreen(
                     }
                 }
 
-                // 5. TOMBOL KELUAR (LOGOUT)
+                // 5. KARTU PUSAT BANTUAN & LAYANAN RESMI
                 item {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    ProfileSectionCard(
+                        title = "Pusat Bantuan & Layanan",
+                        icon = Icons.Default.HelpCenter
+                    ) {
+                        ProfileNavigationRow(
+                            title = "Link Layanan Resmi",
+                            subtitle = "Portal KKP, perizinan SILAT, & Web RFMOs",
+                            icon = Icons.Default.Public,
+                            onClick = onNavigateToServiceLinks
+                        )
+
+                        HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                        ProfileNavigationRow(
+                            title = "Bantuan & Helpdesk",
+                            subtitle = "Hubungi Helpdesk KKP via WhatsApp & Email",
+                            icon = Icons.Default.SupportAgent,
+                            onClick = onNavigateToHelpSupport
+                        )
+                    }
+                }
+
+                // 6. TOMBOL KELUAR (LOGOUT)
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Button(
                         onClick = { showLogoutDialog = true },
@@ -216,11 +243,11 @@ fun ProfileScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Text(
-                        text = "e-PIT Mobile v0.0.1 — DJPT KKP",
+                        text = "e-PIT Mobile v1.0.0 — DJPT KKP",
                         fontSize = 11.sp,
                         color = Color(0xFF94A3B8),
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
 
                     Spacer(modifier = Modifier.height(70.dp))
@@ -229,7 +256,7 @@ fun ProfileScreen(
         }
     }
 
-    // Modal Dialog Konfirmasi Keluar (Mencegah Ketidaksengajaan Sesi Terputus di Laut)
+    // Modal Dialog Konfirmasi Keluar
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -326,7 +353,7 @@ private fun ProfileSectionCard(
                 )
             }
 
-            Divider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+            HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
 
             Column(
                 modifier = Modifier.padding(top = 10.dp),
@@ -334,6 +361,68 @@ private fun ProfileSectionCard(
                 content = content
             )
         }
+    }
+}
+
+/**
+ * Baris Navigasi Menu Profil
+ */
+@Composable
+private fun ProfileNavigationRow(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(ActionCyan.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = ActionCyan,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryNavy
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = Color(0xFF64748B)
+                )
+            }
+        }
+
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = Color(0xFFCBD5E1),
+            modifier = Modifier.size(20.dp)
+        )
     }
 }
 
