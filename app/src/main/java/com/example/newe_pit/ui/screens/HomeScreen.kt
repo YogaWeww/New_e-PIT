@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.data.model.HaulRecord
+import com.example.newe_pit.ui.components.OfflineBanner
 import com.example.newe_pit.ui.components.StatusBadge
 import com.example.newe_pit.ui.theme.*
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
@@ -54,6 +55,9 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
+            // Banner Mode Offline
+            OfflineBanner(isOffline = true)
+
             // Header Bar
             Row(
                 modifier = Modifier
