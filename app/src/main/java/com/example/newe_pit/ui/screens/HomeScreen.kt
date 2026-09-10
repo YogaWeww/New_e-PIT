@@ -23,15 +23,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.data.model.HaulRecord
-import com.example.newe_pit.ui.components.OfflineBanner
+import com.example.newe_pit.ui.components.EmptyHaulHistoryState
 import com.example.newe_pit.ui.components.StatusBadge
 import com.example.newe_pit.ui.theme.*
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 
 /**
  * Layar Beranda (Home Screen) e-PIT Mobile.
- * Kartu kuota utama dapat diklik untuk membuka rincian kuota,
- * serta bilah Aksi Cepat horizontal yang bersih tanpa duplikasi tombol kuota.
+ * Mengintegrasikan EmptyHaulHistoryState ketika belum ada catatan hauling pada trip pelayaran.
  */
 @Composable
 fun HomeScreen(
@@ -55,10 +54,6 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
-            // Banner Mode Offline
-            OfflineBanner(isOffline = true)
-
-            // Header Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -116,7 +111,6 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Kartu Kuota Tangkap (Dapat Diklik Menuju Rincian Kuota)
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
@@ -190,7 +184,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Status SLO & SPB
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -234,7 +227,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Aksi Cepat (Horizontal Scroll dengan Indikator)
                 Column {
                     Row(
                         modifier = Modifier
@@ -303,7 +295,6 @@ fun HomeScreen(
                     }
                 }
 
-                // Riwayat Hauling
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -321,38 +312,45 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        recentHauls.forEach { haul ->
-                            HaulHistoryCard(haul = haul)
+                    if (recentHauls.isEmpty()) {
+                        EmptyHaulHistoryState(
+                            onStartSettingClick = onNavigateToLogbook,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            recentHauls.forEach { haul ->
+                                HaulHistoryCard(haul = haul)
+                            }
                         }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                    Button(
-                        onClick = onNavigateToLogbook,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = ActionCyan,
-                            contentColor = PrimaryNavy
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                        Button(
+                            onClick = onNavigateToLogbook,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ActionCyan,
+                                contentColor = PrimaryNavy
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = "Mulai Operations Logbook",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = "Mulai Operations Logbook",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
                 }

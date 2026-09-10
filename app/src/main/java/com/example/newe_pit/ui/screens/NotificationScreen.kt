@@ -13,26 +13,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.data.model.NotificationItem
 import com.example.newe_pit.data.model.NotificationType
+import com.example.newe_pit.ui.components.EmptyNotificationState
 import com.example.newe_pit.ui.theme.*
 
 /**
  * Layar Pusat Notifikasi & Informasi (Notification Screen)
- * Menyediakan pengingat masa berlaku izin, status sinkronisasi offline, dan info cuaca WPP 718.
+ * Mengintegrasikan EmptyNotificationState saat tidak ada notifikasi baru.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationScreen(
     onNavigateBack: () -> Unit = {}
 ) {
-    // Data simulasi notifikasi operasional pelayaran KKP
     val notificationList = remember {
-        listOf(
+        mutableStateListOf(
             NotificationItem(
                 id = "NOTIF-01",
                 title = "SIPI Segera Kedaluwarsa",
@@ -56,14 +55,6 @@ fun NotificationScreen(
                 timestamp = "24 Agustus 2026",
                 type = NotificationType.WEATHER_WARNING,
                 isUnread = false
-            ),
-            NotificationItem(
-                id = "NOTIF-04",
-                title = "Verifikasi BKP Sukses",
-                description = "Nomor Buku Kapal Perikanan KMN. DIGITALISASI 01 (48 GT) terverifikasi valid oleh sistem pangkalan.",
-                timestamp = "20 Agustus 2026",
-                type = NotificationType.SYNC_STATUS,
-                isUnread = false
             )
         )
     }
@@ -75,7 +66,6 @@ fun NotificationScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Top App Bar yang Konsisten
             TopAppBar(
                 title = {
                     Text(
@@ -84,6 +74,17 @@ fun NotificationScreen(
                         fontWeight = FontWeight.Bold,
                         color = PrimaryNavy
                     )
+                },
+                actions = {
+                    if (notificationList.isNotEmpty()) {
+                        IconButton(onClick = { notificationList.clear() }) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteSweep,
+                                contentDescription = "Bersihkan Notifikasi",
+                                tint = InactiveGray
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
@@ -95,8 +96,18 @@ fun NotificationScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(notificationList) { notif ->
-                    NotificationCard(item = notif)
+                if (notificationList.isEmpty()) {
+                    item {
+                        EmptyNotificationState(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 24.dp)
+                        )
+                    }
+                } else {
+                    items(notificationList) { notif ->
+                        NotificationCard(item = notif)
+                    }
                 }
 
                 item {
@@ -107,9 +118,6 @@ fun NotificationScreen(
     }
 }
 
-/**
- * Kartu Satuan Item Notifikasi
- */
 @Composable
 private fun NotificationCard(item: NotificationItem) {
     val (iconBg, iconTint, iconVector) = when (item.type) {
@@ -137,7 +145,6 @@ private fun NotificationCard(item: NotificationItem) {
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Ikon Jenis Notifikasi
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -152,7 +159,6 @@ private fun NotificationCard(item: NotificationItem) {
                 )
             }
 
-            // Teks Keterangan
             Column(
                 modifier = Modifier.weight(1f)
             ) {

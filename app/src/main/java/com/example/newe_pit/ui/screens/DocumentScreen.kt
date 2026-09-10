@@ -23,12 +23,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.newe_pit.data.model.DocStatusType
 import com.example.newe_pit.data.model.VesselDocItem
+import com.example.newe_pit.ui.components.EmptyDocumentState
 import com.example.newe_pit.ui.theme.*
-
 
 /**
  * Layar Dompet Dokumen Kapal (Document Wallet)
- * Fokus menampilkan daftar perizinan resmi KKP dengan filter kategori dan pratinjau PDF.
+ * Mengintegrasikan EmptyDocumentState saat kategori filter tidak memiliki berkas terdaftar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +39,6 @@ fun DocumentScreen(
     var selectedDocPreview by remember { mutableStateOf<VesselDocItem?>(null) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
-    // Data Simulasi Dokumen Siklus e-PIT KKP
     val documentList = remember {
         listOf(
             VesselDocItem(
@@ -116,7 +115,6 @@ fun DocumentScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Top App Bar yang Konsisten
             TopAppBar(
                 title = {
                     Text(
@@ -136,7 +134,6 @@ fun DocumentScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Segmented Filter Tabs
                 item {
                     val tabs = listOf("Semua", "Aktif", "Proses", "Riwayat")
                     Row(
@@ -168,15 +165,24 @@ fun DocumentScreen(
                     }
                 }
 
-                // Daftar Kartu Dokumen
-                items(filteredDocuments) { doc ->
-                    VesselDocumentCard(
-                        doc = doc,
-                        onViewPdf = { selectedDocPreview = doc },
-                        onDownloadOffline = {
-                            toastMessage = "Dokumen ${doc.title} disimpan secara offline."
-                        }
-                    )
+                if (filteredDocuments.isEmpty()) {
+                    item {
+                        EmptyDocumentState(
+                            filterCategory = selectedCategoryTab,
+                            onRefreshClick = { selectedCategoryTab = "Semua" },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                } else {
+                    items(filteredDocuments) { doc ->
+                        VesselDocumentCard(
+                            doc = doc,
+                            onViewPdf = { selectedDocPreview = doc },
+                            onDownloadOffline = {
+                                toastMessage = "Dokumen ${doc.title} disimpan secara offline."
+                            }
+                        )
+                    }
                 }
 
                 item {
@@ -186,7 +192,6 @@ fun DocumentScreen(
         }
     }
 
-    // Modal Pratinjau Dokumen PDF
     selectedDocPreview?.let { doc ->
         DocumentPdfPreviewDialog(
             doc = doc,
@@ -198,7 +203,6 @@ fun DocumentScreen(
         )
     }
 
-    // Floating Notification Banner
     toastMessage?.let { msg ->
         LaunchedEffect(msg) {
             kotlinx.coroutines.delay(2400)
@@ -227,9 +231,6 @@ fun DocumentScreen(
     }
 }
 
-/**
- * Komponen Kartu Satuan Dokumen Perizinan
- */
 @Composable
 private fun VesselDocumentCard(
     doc: VesselDocItem,
@@ -365,9 +366,6 @@ private fun VesselDocumentCard(
     }
 }
 
-/**
- * Modal Dialog Pratinjau Dokumen PDF Resmi KKP
- */
 @Composable
 private fun DocumentPdfPreviewDialog(
     doc: VesselDocItem,

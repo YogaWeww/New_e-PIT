@@ -1,6 +1,5 @@
 package com.example.newe_pit.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -11,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SetMeal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,14 +20,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.newe_pit.data.model.CatchItem
 import com.example.newe_pit.ui.components.EPITCardContainer
+import com.example.newe_pit.ui.components.EPITEmptyState
 import com.example.newe_pit.ui.components.EPITPrimaryButton
 import com.example.newe_pit.ui.theme.*
 
 /**
  * Layar Laporan Pendaratan Trip & Permohonan STBLKK
- * Disertai opsi Jenis Kedatangan, Tujuan Kedatangan (Bongkar, Muat, Isi Perbekalan, Docking),
- * serta dropdown Pelabuhan Pendaratan resmi KKP dengan desain modern kartu bersih.
+ * Mengintegrasikan EPITEmptyState jika trip pelayaran belum memiliki catatan hasil tangkapan.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,18 +38,15 @@ fun LandingReportScreen(
 ) {
     var fuelInput by remember { mutableStateOf("450") }
 
-    // Pilihan Jenis Kedatangan
     val arrivalTypeOptions = listOf("Biasa", "Darurat", "Karam/Hilang")
     var selectedArrivalType by remember { mutableStateOf(arrivalTypeOptions[0]) }
     var expandedArrivalDropdown by remember { mutableStateOf(false) }
 
-    // Opsi Tujuan Kedatangan (Checkbox states)
     var isBongkarChecked by remember { mutableStateOf(true) }
     var isMuatChecked by remember { mutableStateOf(false) }
     var isIsiPerbekalanChecked by remember { mutableStateOf(false) }
     var isDockingChecked by remember { mutableStateOf(false) }
 
-    // Daftar Pilihan Pelabuhan Resmi KKP
     val portOptions = listOf(
         "PP. Dobo",
         "PPN Ambon",
@@ -63,6 +61,16 @@ fun LandingReportScreen(
 
     var isConfirmed by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
+
+    // Simulasi daftar tangkapan trip (dapat diset kosong untuk menguji empty state)
+    val tripCatchItems = remember {
+        listOf(
+            CatchItem(speciesName = "Cakalang [SKJ]", weightKg = 389, quantityCount = 42),
+            CatchItem(speciesName = "Cumi-Cumi", weightKg = 399, quantityCount = 150)
+        )
+    }
+
+    val totalCatchWeight = remember(tripCatchItems) { tripCatchItems.sumOf { it.weightKg } }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -99,7 +107,6 @@ fun LandingReportScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. Informasi Lokasi & Durasi Trip (Otomatis)
                 EPITCardContainer {
                     Text(
                         text = "INFORMASI LOKASI & DURASI TRIP",
@@ -126,7 +133,6 @@ fun LandingReportScreen(
                     }
                 }
 
-                // 2. Jenis & Tujuan Kedatangan KKP
                 EPITCardContainer {
                     Text(
                         text = "JENIS & TUJUAN KEDATANGAN",
@@ -140,7 +146,6 @@ fun LandingReportScreen(
                     Text(text = "Jenis Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Dropdown Jenis Kedatangan
                     ExposedDropdownMenuBox(
                         expanded = expandedArrivalDropdown,
                         onExpandedChange = { expandedArrivalDropdown = !expandedArrivalDropdown },
@@ -176,7 +181,6 @@ fun LandingReportScreen(
                     Text(text = "Tujuan Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // Grid Checkbox Tujuan Kedatangan (2x2)
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
@@ -217,7 +221,6 @@ fun LandingReportScreen(
                     }
                 }
 
-                // 3. Input Manual Operasional (BBM & Pelabuhan Pendaratan)
                 EPITCardContainer {
                     Text(
                         text = "INPUT MANUAL OPERASIONAL",
@@ -242,7 +245,6 @@ fun LandingReportScreen(
                     Text(text = "Pelabuhan Pendaratan Tujuan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Dropdown Pelabuhan Resmi KKP
                     ExposedDropdownMenuBox(
                         expanded = expandedPortDropdown,
                         onExpandedChange = { expandedPortDropdown = !expandedPortDropdown },
@@ -275,48 +277,58 @@ fun LandingReportScreen(
                     }
                 }
 
-                // 4. Ringkasan Total Tangkapan Trip
-                EPITCardContainer {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "RINGKASAN TOTAL TANGKAPAN TRIP",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF94A3B8),
-                            letterSpacing = 1.sp
-                        )
-                        Text(
-                            text = "2 Spesies",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ActionCyan
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
+                if (tripCatchItems.isEmpty()) {
+                    EPITEmptyState(
+                        title = "Belum Ada Tangkapan Trip Ini",
+                        description = "Laporan pendaratan memerlukan ringkasan hasil tangkapan. Silakan isi e-Logbook tawur terlebih dahulu.",
+                        icon = Icons.Default.SetMeal,
+                        actionLabel = "Buka e-Logbook",
+                        onActionClick = onNavigateBack,
+                        iconBackgroundColor = Color(0xFFFEF3C7),
+                        iconTint = Color(0xFFD97706),
+                        compactMode = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    EPITCardContainer {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "RINGKASAN TOTAL TANGKAPAN TRIP",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF94A3B8),
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "${tripCatchItems.size} Spesies",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ActionCyan
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "• Cakalang [SKJ]", fontSize = 12.sp, color = Color(0xFF475569))
-                        Text(text = "389 Kg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryNavy)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "• Cumi-Cumi", fontSize = 12.sp, color = Color(0xFF475569))
-                        Text(text = "399 Kg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryNavy)
-                    }
+                        tripCatchItems.forEach { item ->
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(text = "• ${item.speciesName}", fontSize = 12.sp, color = Color(0xFF475569))
+                                Text(text = "${item.weightKg} Kg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryNavy)
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = CardBorder)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = CardBorder)
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "TOTAL CATCH:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                        Text(text = "788 Kg", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = ActionCyan)
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "TOTAL CATCH:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                            Text(text = "$totalCatchWeight Kg", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = ActionCyan)
+                        }
                     }
                 }
 
-                // 5. Pernyataan Kebenaran Data (Legal Compliance Checkbox)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -344,7 +356,7 @@ fun LandingReportScreen(
                 EPITPrimaryButton(
                     text = "LAPORKAN PENDARATAN",
                     icon = Icons.Default.Send,
-                    enabled = isConfirmed,
+                    enabled = isConfirmed && tripCatchItems.isNotEmpty(),
                     onClick = {
                         showSuccessDialog = true
                     }
@@ -355,7 +367,6 @@ fun LandingReportScreen(
         }
     }
 
-    // Modal Sukses Laporan Terkirim & Terbit STBLKK
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = { },

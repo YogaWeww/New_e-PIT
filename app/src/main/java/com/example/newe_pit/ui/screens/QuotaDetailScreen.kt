@@ -1,8 +1,5 @@
 package com.example.newe_pit.ui.screens
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,12 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.data.model.QuotaDetailData
 import com.example.newe_pit.ui.components.EPITCardContainer
+import com.example.newe_pit.ui.components.EPITEmptyState
 import com.example.newe_pit.ui.theme.*
 
 /**
  * Layar Rincian Kuota PIT (Penangkapan Ikan Terukur)
- * Mengadaptasi tampilan resmi e-PIT dengan kartu metrik Kuota, Realisasi, dan Sisa,
- * serta rincian kontribusi spesies.
+ * Mengintegrasikan EPITEmptyState jika belum ada penyerapan kuota per spesies.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +67,6 @@ fun QuotaDetailScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Info Wilayah & Legalitas Kuota
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
@@ -108,7 +104,6 @@ fun QuotaDetailScreen(
                     }
                 }
 
-                // 1. Kartu Kuota (Biru Utama)
                 QuotaMetricCard(
                     title = "KUOTA TAHUNAN",
                     value = "${quotaData.totalQuotaKg.toInt()} Kg",
@@ -116,7 +111,6 @@ fun QuotaDetailScreen(
                     textColor = Color.White
                 )
 
-                // 2. Kartu Realisasi (Biru Toska / Cyan)
                 QuotaMetricCard(
                     title = "REALISASI TANGKAPAN",
                     value = "${quotaData.realizedQuotaKg.toInt()} Kg",
@@ -124,7 +118,6 @@ fun QuotaDetailScreen(
                     textColor = Color.White
                 )
 
-                // 3. Kartu Sisa Kuota (Hijau Status)
                 QuotaMetricCard(
                     title = "SISA KUOTA TERSISA",
                     value = "${quotaData.remainingQuotaKg.toInt()} Kg",
@@ -132,7 +125,6 @@ fun QuotaDetailScreen(
                     textColor = Color.White
                 )
 
-                // Rincian Breakdown Spesies Penyerap Kuota
                 EPITCardContainer {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -155,27 +147,39 @@ fun QuotaDetailScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    quotaData.speciesBreakdown.forEach { item ->
-                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = item.speciesName, fontSize = 12.sp, color = PrimaryNavy, fontWeight = FontWeight.Medium)
-                                Text(text = "${item.weightKg.toInt()} kg (${item.percentage}%)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                    if (quotaData.speciesBreakdown.isEmpty()) {
+                        EPITEmptyState(
+                            title = "Belum Ada Penyerapan Kuota",
+                            description = "Data kontribusi spesies akan otomatis dihitung setelah laporan pendaratan trip pertama terverifikasi.",
+                            icon = Icons.Default.PieChart,
+                            iconBackgroundColor = ActionCyan.copy(alpha = 0.12f),
+                            iconTint = ActionCyan,
+                            compactMode = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        quotaData.speciesBreakdown.forEach { item ->
+                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = item.speciesName, fontSize = 12.sp, color = PrimaryNavy, fontWeight = FontWeight.Medium)
+                                    Text(text = "${item.weightKg.toInt()} kg (${item.percentage}%)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                LinearProgressIndicator(
+                                    progress = { (item.percentage / 100).toFloat() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(3.dp)),
+                                    color = ActionCyan,
+                                    trackColor = Color(0xFFE2E8F0)
+                                )
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            LinearProgressIndicator(
-                                progress = { (item.percentage / 100).toFloat() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(3.dp)),
-                                color = ActionCyan,
-                                trackColor = Color(0xFFE2E8F0)
-                            )
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
 

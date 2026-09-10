@@ -20,12 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.data.model.PartnerVessel
 import com.example.newe_pit.ui.components.EPITPrimaryButton
+import com.example.newe_pit.ui.components.EmptyTransshipmentState
 import com.example.newe_pit.ui.theme.*
 
 /**
  * Layar Alih Muat (Transshipment Screen)
- * Memungkinkan kapal pengangkut memilih kapal penangkap mitra sesuai SIKPI,
- * mengambil foto bukti, dan mencatat jenis/berat ikan yang dialihmuatkan.
+ * Mengintegrasikan EmptyTransshipmentState jika belum ada pendaftaran kapal mitra SIKPI aktif.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +40,6 @@ fun TransshipmentScreen(
     var transshipmentCompleted by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf<String?>(null) }
 
-    // Daftar simulasi kapal penangkap mitra SIKPI aktif
     val partnerList = remember {
         mutableStateListOf(
             PartnerVessel("V-01", "KMN. MAJU JAYA 02", "SIKPI/718/2026/012", "SULAIMAN", 35),
@@ -84,7 +83,6 @@ fun TransshipmentScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // 1. Instruksi Panduan KKP
                 item {
                     Card(
                         shape = RoundedCornerShape(14.dp),
@@ -112,7 +110,6 @@ fun TransshipmentScreen(
                     }
                 }
 
-                // 2. Daftar Kapal Mitra
                 item {
                     Text(
                         text = "1. PILIH KAPAL PENANGKAP MITRA SIKPI",
@@ -123,75 +120,85 @@ fun TransshipmentScreen(
                     )
                 }
 
-                items(partnerList) { partner ->
-                    val isChosen = selectedPartner?.id == partner.id
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { selectedPartner = partner },
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isChosen) Color(0xFFE0F7FA) else Color.White
-                        ),
-                        border = BorderStroke(
-                            width = if (isChosen) 2.dp else 1.dp,
-                            color = if (isChosen) ActionCyan else CardBorder
+                if (partnerList.isEmpty()) {
+                    item {
+                        EmptyTransshipmentState(
+                            onSelectPartnerClick = {
+                                toastMessage = "Menghubungkan ke pangkalan SIKPI..."
+                            },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    ) {
-                        Row(
+                    }
+                } else {
+                    items(partnerList) { partner ->
+                        val isChosen = selectedPartner?.id == partner.id
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable { selectedPartner = partner },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isChosen) Color(0xFFE0F7FA) else Color.White
+                            ),
+                            border = BorderStroke(
+                                width = if (isChosen) 2.dp else 1.dp,
+                                color = if (isChosen) ActionCyan else CardBorder
+                            )
                         ) {
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .background(ActionCyan.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
-                                    contentAlignment = Alignment.Center
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DirectionsBoat,
-                                        contentDescription = null,
-                                        tint = ActionCyan,
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .background(ActionCyan.copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DirectionsBoat,
+                                            contentDescription = null,
+                                            tint = ActionCyan,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = partner.vesselName,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryNavy
+                                        )
+                                        Text(
+                                            text = "SIKPI: ${partner.permitNumber} (${partner.grossTonnage} GT)",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                        Text(
+                                            text = "Nakhoda: ${partner.captainName}",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
                                 }
-                                Column {
-                                    Text(
-                                        text = partner.vesselName,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryNavy
-                                    )
-                                    Text(
-                                        text = "SIKPI: ${partner.permitNumber} (${partner.grossTonnage} GT)",
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
-                                    )
-                                    Text(
-                                        text = "Nakhoda: ${partner.captainName}",
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF64748B)
-                                    )
-                                }
-                            }
 
-                            RadioButton(
-                                selected = isChosen,
-                                onClick = { selectedPartner = partner },
-                                colors = RadioButtonDefaults.colors(selectedColor = ActionCyan)
-                            )
+                                RadioButton(
+                                    selected = isChosen,
+                                    onClick = { selectedPartner = partner },
+                                    colors = RadioButtonDefaults.colors(selectedColor = ActionCyan)
+                                )
+                            }
                         }
                     }
                 }
 
-                // 3. Dokumentasi Foto & Input Ikan
                 if (selectedPartner != null) {
                     item {
                         Spacer(modifier = Modifier.height(4.dp))
@@ -292,7 +299,6 @@ fun TransshipmentScreen(
             }
         }
 
-        // Modal Dialog Simulasi Foto (Berada di dalam Surface utama)
         if (showPhotoDialog) {
             AlertDialog(
                 onDismissRequest = { showPhotoDialog = false },
@@ -335,7 +341,6 @@ fun TransshipmentScreen(
             )
         }
 
-        // Modal Dialog Simulasi Input Data Ikan (Berada di dalam Surface utama)
         if (showCatchDialog) {
             AlertDialog(
                 onDismissRequest = { showCatchDialog = false },
@@ -366,7 +371,6 @@ fun TransshipmentScreen(
             )
         }
 
-        // Toast Banner (Berada di dalam Surface utama)
         toastMessage?.let { msg ->
             LaunchedEffect(msg) {
                 kotlinx.coroutines.delay(2400)

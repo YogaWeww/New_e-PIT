@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  */
 class HomeViewModel(
     private val authRepository: AuthRepository = AuthRepository(),
-    private val logbookRepository: LogbookRepository = LogbookRepository()
+    private val logbookRepository: LogbookRepository = LogbookRepository.instance
 ) : ViewModel() {
 
     // Informasi Kuota & Profil Kapal

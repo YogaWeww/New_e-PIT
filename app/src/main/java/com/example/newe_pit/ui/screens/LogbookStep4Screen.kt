@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.ui.components.EPITCardContainer
 import com.example.newe_pit.ui.components.EPITPrimaryButton
-import com.example.newe_pit.ui.theme.ActionCyan
+import com.example.newe_pit.ui.components.EmptyCartState
 import com.example.newe_pit.ui.theme.CardBorder
 import com.example.newe_pit.ui.theme.PrimaryNavy
 import com.example.newe_pit.ui.theme.StopRed
@@ -27,7 +27,7 @@ import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
  * Layar Logbook Step 4: Ringkasan & Review Daftar Tangkapan Tawur Ini.
- * Menampilkan item keranjang, ringkasan berat total, dan CTA simpan data permanen.
+ * Menampilkan item keranjang, ringkasan berat total, serta komponen EmptyCartState jika kosong.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,20 +86,10 @@ fun LogbookStep4Screen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (cartItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp)
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Belum ada item tangkapan dalam keranjang.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B)
-                    )
-                }
+                EmptyCartState(
+                    onAddSpeciesClick = onNavigateBack,
+                    modifier = Modifier.fillMaxWidth()
+                )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     cartItems.forEach { item ->

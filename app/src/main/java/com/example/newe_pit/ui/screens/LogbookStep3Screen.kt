@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.example.newe_pit.ui.components.EPITCardContainer
 import com.example.newe_pit.ui.components.EPITPrimaryButton
 import com.example.newe_pit.ui.components.EPITStepperControl
+import com.example.newe_pit.ui.components.EmptySearchState
 import com.example.newe_pit.ui.theme.ActionCyan
 import com.example.newe_pit.ui.theme.CardBorder
 import com.example.newe_pit.ui.theme.CardSurface
@@ -177,60 +178,68 @@ fun LogbookStep3Screen(
                 )
             }
 
-            // Grid Spesies Scrollable dalam Container Berukuran Terukur (Maksimal 220dp)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .background(Color.White, RoundedCornerShape(12.dp))
-                    .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-                    .padding(8.dp)
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxSize()
+            if (filteredSpecies.isEmpty()) {
+                EmptySearchState(
+                    searchQuery = searchQuery,
+                    onResetSearchClick = { searchQuery = "" },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                // Grid Spesies Scrollable dalam Container Berukuran Terukur (Maksimal 220dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                        .padding(8.dp)
                 ) {
-                    items(filteredSpecies) { species ->
-                        val isSelected = selectedSpecies == species.name
-                        Card(
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSelected) Color(0xFFE0F7FA) else Color(0xFFF8FAFC)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(
-                                    1.5.dp,
-                                    if (isSelected) ActionCyan else CardBorder,
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable { selectedSpecies = species.name }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(filteredSpecies) { species ->
+                            val isSelected = selectedSpecies == species.name
+                            Card(
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) Color(0xFFE0F7FA) else Color(0xFFF8FAFC)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(
+                                        1.5.dp,
+                                        if (isSelected) ActionCyan else CardBorder,
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable { selectedSpecies = species.name }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.SetMeal,
-                                    contentDescription = null,
-                                    tint = ActionCyan,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Column {
-                                    Text(
-                                        text = species.name,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = PrimaryNavy
+                                Row(
+                                    modifier = Modifier.padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.SetMeal,
+                                        contentDescription = null,
+                                        tint = ActionCyan,
+                                        modifier = Modifier.size(22.dp)
                                     )
-                                    Text(
-                                        text = species.code,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFF64748B)
-                                    )
+                                    Column {
+                                        Text(
+                                            text = species.name,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryNavy
+                                        )
+                                        Text(
+                                            text = species.code,
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF64748B)
+                                        )
+                                    }
                                 }
                             }
                         }

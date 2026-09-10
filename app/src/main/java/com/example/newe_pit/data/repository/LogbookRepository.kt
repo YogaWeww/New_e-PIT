@@ -15,6 +15,11 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 class LogbookRepository {
 
+    companion object {
+        // Instansi Tunggal (Singleton) agar HomeViewModel & LogbookViewModel Berbagi Data yang Sama
+        val instance: LogbookRepository by lazy { LogbookRepository() }
+    }
+
     // Katalog Spesies Ikan Lengkap WPP 718 untuk Demo Scrollable
     private val speciesCatalog = listOf(
         FishSpecies("SKJ", "Cakalang", "Katsuwonus pelamis"),
@@ -31,27 +36,8 @@ class LogbookRepository {
         FishSpecies("KPA", "Kakap Merah", "Lutjanus campechanus")
     )
 
-    // Dummy Histori Hauling
-    private val _haulHistory = MutableStateFlow(
-        listOf(
-            HaulRecord(
-                id = 12,
-                haulNumber = 12,
-                timestampFormatted = "24 Agustus 2026",
-                totalWeightKg = 1500,
-                totalQuantityCount = 15,
-                syncStatus = SyncStatus.SYNCED
-            ),
-            HaulRecord(
-                id = 11,
-                haulNumber = 11,
-                timestampFormatted = "17 Agustus 2026",
-                totalWeightKg = 2000,
-                totalQuantityCount = 20,
-                syncStatus = SyncStatus.SYNCED
-            )
-        )
-    )
+    // Histori Hauling Default Kosong agar Empty State Otomatis Tampil di Beranda
+    private val _haulHistory = MutableStateFlow<List<HaulRecord>>(emptyList())
     val haulHistory: Flow<List<HaulRecord>> = _haulHistory.asStateFlow()
 
     // Draft item keranjang untuk tawur aktif

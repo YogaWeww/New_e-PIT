@@ -24,7 +24,7 @@ enum class SettingState {
  * ViewModel untuk Mengelola Alur Kerja e-Logbook, Perendaman, dan Keranjang Spesies
  */
 class LogbookViewModel(
-    private val logbookRepository: LogbookRepository = LogbookRepository()
+    private val logbookRepository: LogbookRepository = LogbookRepository.instance
 ) : ViewModel() {
 
     // Status Tahapan Logbook
