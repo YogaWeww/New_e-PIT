@@ -36,6 +36,7 @@ import com.example.newe_pit.ui.viewmodel.HomeViewModel
 fun HomeScreen(
     homeViewModel: HomeViewModel,
     onNavigateToLogbook: () -> Unit,
+    onNavigateToHaulHistory: () -> Unit = {},
     onNavigateToTransshipment: () -> Unit = {},
     onNavigateToLandingReport: () -> Unit = {},
     onNavigateToServiceLinks: () -> Unit = {},
@@ -308,6 +309,13 @@ fun HomeScreen(
                             color = Color(0xFF94A3B8),
                             letterSpacing = 1.sp
                         )
+                        Text(
+                            text = "Lihat Semua",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ActionCyan,
+                            modifier = Modifier.clickable { onNavigateToHaulHistory() }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -319,7 +327,7 @@ fun HomeScreen(
                         )
                     } else {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            recentHauls.forEach { haul ->
+                            recentHauls.take(2).forEach { haul ->
                                 HaulHistoryCard(haul = haul)
                             }
                         }
@@ -327,7 +335,7 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Button(
-                            onClick = onNavigateToLogbook,
+                            onClick = onNavigateToHaulHistory,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = ActionCyan,
@@ -340,7 +348,7 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 Text(
-                                    text = "Mulai Operations Logbook",
+                                    text = "Lihat Semua Riwayat Hauling",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )

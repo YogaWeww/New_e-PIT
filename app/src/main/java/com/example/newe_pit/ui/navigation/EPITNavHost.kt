@@ -40,7 +40,8 @@ fun EPITMainAppHost(
         Screen.LandingReport.route,
         Screen.ServiceLinks.route,
         Screen.HelpSupport.route,
-        Screen.QuotaDetail.route
+        Screen.QuotaDetail.route,
+        Screen.HaulHistory.route
     )
 
     Scaffold(
@@ -123,6 +124,9 @@ fun EPITMainAppHost(
                     onNavigateToLogbook = {
                         navController.navigate(Screen.LogbookStep1.route)
                     },
+                    onNavigateToHaulHistory = {
+                        navController.navigate(Screen.HaulHistory.route)
+                    },
                     onNavigateToTransshipment = {
                         navController.navigate(Screen.Transshipment.route)
                     },
@@ -138,6 +142,15 @@ fun EPITMainAppHost(
                     onNavigateToQuotaDetail = {
                         navController.navigate(Screen.QuotaDetail.route)
                     }
+                )
+            }
+
+            // Rute Layar Khusus Riwayat Hauling
+            composable(Screen.HaulHistory.route) {
+                HaulHistoryScreen(
+                    logbookViewModel = logbookViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToLogbook = { navController.navigate(Screen.LogbookStep1.route) }
                 )
             }
 
@@ -161,7 +174,7 @@ fun EPITMainAppHost(
                 LogbookStep3Screen(
                     logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToCart = { navController.navigate(Screen.LogbookStep4.route) }
+                    onNavigateToCart  = { navController.navigate(Screen.LogbookStep4.route) }
                 )
             }
             composable(Screen.LogbookStep4.route) {
