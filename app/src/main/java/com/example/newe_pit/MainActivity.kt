@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.newe_pit.data.repository.LogbookRepository
 import com.example.newe_pit.ui.navigation.EPITMainAppHost
 import com.example.newe_pit.ui.theme.EPITTheme
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
@@ -24,8 +25,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Panggil Android Native Splash Screen API
         installSplashScreen()
-
         super.onCreate(savedInstanceState)
+
+        LogbookRepository.initialize(applicationContext)
 
         setContent {
             EPITTheme {
