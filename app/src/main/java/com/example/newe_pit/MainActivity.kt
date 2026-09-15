@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.newe_pit.data.repository.AuthRepository
 import com.example.newe_pit.data.repository.LogbookRepository
 import com.example.newe_pit.ui.navigation.EPITMainAppHost
 import com.example.newe_pit.ui.theme.EPITTheme
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         LogbookRepository.initialize(applicationContext)
+        AuthRepository.initialize(applicationContext)
 
         setContent {
             EPITTheme {

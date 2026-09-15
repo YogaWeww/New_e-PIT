@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-
 /**
  * UI State untuk Verifikasi eBKP Modal Dialog
  */
@@ -26,7 +25,7 @@ sealed interface BkpVerificationUiState {
  * ViewModel untuk Mengelola Alur Otentikasi, Verifikasi eBKP, dan Aktivasi Akun
  */
 class AuthViewModel(
-    private val authRepository: AuthRepository = AuthRepository()
+    private val authRepository: AuthRepository = AuthRepository.instance
 ) : ViewModel() {
 
     // Sesi Pengguna saat ini
@@ -113,7 +112,9 @@ class AuthViewModel(
     }
 
     fun signOut() {
-        authRepository.signOut()
+        viewModelScope.launch {
+            authRepository.signOut()
+        }
     }
 }
 

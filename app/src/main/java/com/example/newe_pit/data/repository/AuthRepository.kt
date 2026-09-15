@@ -1,5 +1,9 @@
 package com.example.newe_pit.data.repository
 
+import android.content.Context
+import com.example.newe_pit.data.local.EPITDatabase
+import com.example.newe_pit.data.local.VesselProfileDao
+import com.example.newe_pit.data.local.VesselProfileEntity
 import com.example.newe_pit.data.model.UserRole
 import com.example.newe_pit.data.model.UserSession
 import com.example.newe_pit.data.model.VesselInfo
@@ -7,30 +11,58 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 
 /**
- * Repositori untuk Autentikasi, Verifikasi eBKP, dan Aktivasi Akun.
- * Menggunakan data simulasi (Dummy) sebelum dihubungkan ke Firebase Auth/Firestore.
+ * Repositori Autentikasi & Profil Terintegrasi Room Database Lokal HP.
  */
-class AuthRepository {
+class AuthRepository(
+    private val vesselProfileDao: VesselProfileDao? = null
+) {
 
-    private val _currentUserSession = MutableStateFlow(
+    companion object {
+        @Volatile
+        private var INSTANCE: AuthRepository? = null
+
+        val instance: AuthRepository
+            get() = INSTANCE ?: synchronized(this) {
+                val instance = AuthRepository()
+                INSTANCE = instance
+                instance
+            }
+
+        fun initialize(context: Context): AuthRepository {
+            return INSTANCE ?: synchronized(this) {
+                val db = EPITDatabase.getDatabase(context)
+                val instance = AuthRepository(db.vesselProfileDao())
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+
+    private val _fallbackUserSession = MutableStateFlow(
         UserSession(
             noregBkp = "A00029",
             email = "digitalisasi01@maganghub.co.id",
             vesselName = "KMN. DIGITALISASI 01",
             role = UserRole.CAPTAIN,
-            isLoggedIn = false
+            isLoggedIn = true
         )
     )
-    val currentUserSession: Flow<UserSession> = _currentUserSession.asStateFlow()
 
     /**
-     * Memverifikasi nomor eBKP kapal ke database
+     * Observable Stream untuk Sesi Pengguna Aktif dari Room DB
+     */
+    val currentUserSession: Flow<UserSession> = vesselProfileDao?.getActiveSessionFlow()?.map { entity ->
+        entity?.toDomainModel() ?: UserSession()
+    } ?: _fallbackUserSession.asStateFlow()
+
+    /**
+     * Memverifikasi nomor eBKP kapal ke registry KKP
      */
     suspend fun verifyBkp(noregBkp: String): Result<VesselInfo> {
-        delay(800) // Simulasi delay jaringan
-        // Menerima "A00029" maupun "A000029"
+        delay(800)
         return if (noregBkp.equals("A00029", ignoreCase = true) || noregBkp.equals("A000029", ignoreCase = true)) {
             Result.success(
                 VesselInfo(
@@ -50,37 +82,82 @@ class AuthRepository {
     }
 
     /**
-     * Memproses masuk (Sign In) pengguna
+     * Memproses masuk (Sign In) dan menyimpan profil permanen ke Room DB
      */
     suspend fun signIn(noregBkp: String, pass: String): Result<UserSession> {
         delay(600)
-        return if (noregBkp.isNotBlank() && pass.length >= 6) {
-            val session = _currentUserSession.value.copy(
-                noregBkp = noregBkp,
-                isLoggedIn = true
-            )
-            _currentUserSession.value = session
-            Result.success(session)
-        } else {
-            Result.failure(Exception("Noreg BKP atau Password salah."))
+        if (noregBkp.isBlank() || pass.length < 6) {
+            return Result.failure(Exception("Noreg BKP atau Password salah."))
         }
-    }
 
-    /**
-     * Mengaktifkan akun pengguna baru
-     */
-    suspend fun activateAccount(role: UserRole, email: String, pass: String): Result<UserSession> {
-        delay(1000)
-        val session = _currentUserSession.value.copy(
-            email = email,
-            role = role,
-            isLoggedIn = true
+        val profileEntity = VesselProfileEntity(
+            noregBkp = noregBkp,
+            vesselName = "KMN. DIGITALISASI 01",
+            grossTonnage = 48,
+            ownerName = "PT. BA***",
+            captainName = "SUPRIYANTO",
+            email = "digitalisasi01@maganghub.co.id",
+            role = UserRole.CAPTAIN,
+            sloActive = true,
+            spbActive = true,
+            totalQuotaKg = 10000.0,
+            remainingQuotaKg = 5101.0,
+            isLoggedIn = true,
+            rememberMe = true
         )
-        _currentUserSession.value = session
+
+        vesselProfileDao?.logoutAllUsers()
+        vesselProfileDao?.saveProfile(profileEntity)
+
+        val session = profileEntity.toDomainModel()
+        _fallbackUserSession.value = session
         return Result.success(session)
     }
 
-    fun signOut() {
-        _currentUserSession.value = UserSession()
+    /**
+     * Mengaktifkan akun pengguna baru & simpan ke Room DB
+     */
+    suspend fun activateAccount(role: UserRole, email: String, pass: String): Result<UserSession> {
+        delay(900)
+        val profileEntity = VesselProfileEntity(
+            noregBkp = "A00029",
+            vesselName = "KMN. DIGITALISASI 01",
+            grossTonnage = 48,
+            ownerName = "PT. BA***",
+            captainName = "SUPRIYANTO",
+            email = email,
+            role = role,
+            sloActive = true,
+            spbActive = true,
+            totalQuotaKg = 10000.0,
+            remainingQuotaKg = 5101.0,
+            isLoggedIn = true,
+            rememberMe = true
+        )
+
+        vesselProfileDao?.logoutAllUsers()
+        vesselProfileDao?.saveProfile(profileEntity)
+
+        val session = profileEntity.toDomainModel()
+        _fallbackUserSession.value = session
+        return Result.success(session)
+    }
+
+    /**
+     * Keluar dari akun (Logout) & hapus sesi di Room DB
+     */
+    suspend fun signOut() {
+        vesselProfileDao?.logoutAllUsers()
+        _fallbackUserSession.value = UserSession()
+    }
+
+    private fun VesselProfileEntity.toDomainModel(): UserSession {
+        return UserSession(
+            noregBkp = noregBkp,
+            email = email,
+            vesselName = vesselName,
+            role = role,
+            isLoggedIn = isLoggedIn
+        )
     }
 }

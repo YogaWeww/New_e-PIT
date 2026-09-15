@@ -7,17 +7,18 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 /**
- * Instansi Utama Room Database e-PIT Mobile
+ * Instansi Utama Room Database e-PIT Mobile (Versi 2 - Mendukung Sesi Akun & Profil Kapal)
  */
 @Database(
-    entities = [HaulRecordEntity::class, CatchItemEntity::class],
-    version = 1,
+    entities = [HaulRecordEntity::class, CatchItemEntity::class, VesselProfileEntity::class],
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(EPITTypeConverters::class)
 abstract class EPITDatabase : RoomDatabase() {
 
     abstract fun haulDao(): HaulDao
+    abstract fun vesselProfileDao(): VesselProfileDao
 
     companion object {
         @Volatile
