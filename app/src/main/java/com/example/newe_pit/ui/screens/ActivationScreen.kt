@@ -44,20 +44,22 @@ fun ActivationScreen(
     onNavigateHome: () -> Unit
 ) {
     var selectedRole by remember { mutableStateOf(UserRole.SHIP_OWNER) }
-    var email by remember { mutableStateOf("digitalisasi01@maganghub.co.id") }
-    var password by remember { mutableStateOf("password123") }
-    var confirmPassword by remember { mutableStateOf("password123") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordError by remember { mutableStateOf<String?>(null) }
 
-    val userSession by authViewModel.userSession.collectAsState()
+    val verifiedVessel by authViewModel.verifiedVessel.collectAsState()
     val isLoading by authViewModel.isLoading.collectAsState()
     val errorMessage by authViewModel.errorMessage.collectAsState()
 
-    val vesselName = if (userSession.vesselName.isNotBlank()) {
-        userSession.vesselName
-    } else {
-        "KMN. DIGITALISASI 01"
+    // Bersihkan sisa pesan error dari percobaan Sign In sebelumnya saat layar aktivasi dibuka
+    LaunchedEffect(Unit) {
+        authViewModel.clearError()
     }
+
+    // Nama kapal menyesuaikan dengan eBKP yang diverifikasi (misal: B00088 -> KMN. BINTANG LAUT 08)
+    val vesselName = verifiedVessel?.vesselName ?: "KMN. DIGITALISASI 01"
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -208,7 +210,10 @@ fun ActivationScreen(
 
                 EPITTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        if (errorMessage != null) authViewModel.clearError()
+                    },
                     placeholder = "Alamat Email",
                     leadingIcon = Icons.Default.Email,
                     helperText = "* Kode OTP / verifikasi akan dikirim ke email ini"
@@ -230,6 +235,7 @@ fun ActivationScreen(
                     onValueChange = {
                         password = it
                         passwordError = null
+                        if (errorMessage != null) authViewModel.clearError()
                     },
                     placeholder = "Buat Password",
                     leadingIcon = Icons.Default.Lock
@@ -251,6 +257,7 @@ fun ActivationScreen(
                     onValueChange = {
                         confirmPassword = it
                         passwordError = null
+                        if (errorMessage != null) authViewModel.clearError()
                     },
                     placeholder = "Konfirmasi Password",
                     leadingIcon = Icons.Default.Lock
@@ -275,8 +282,8 @@ fun ActivationScreen(
                     onClick = {
                         if (password != confirmPassword) {
                             passwordError = "Konfirmasi password tidak cocok."
-                        } else if (password.length < 6) {
-                            passwordError = "Password minimal 6 karakter."
+                        } else if (password.length < 8) {
+                            passwordError = "Password minimal 8 karakter."
                         } else {
                             authViewModel.activateAccount(
                                 role = selectedRole,

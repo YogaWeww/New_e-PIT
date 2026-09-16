@@ -41,7 +41,7 @@ fun VerifyBkpScreen(
     onNavigateBack: () -> Unit,
     onNavigateNext: () -> Unit
 ) {
-    var codeDigits by remember { mutableStateOf(listOf("A", "0", "0", "0", "2", "9")) }
+    var codeDigits by remember { mutableStateOf(List(6) { "" }) }
     val focusRequesters = remember { List(6) { FocusRequester() } }
     val verificationState by authViewModel.verificationState.collectAsState()
 

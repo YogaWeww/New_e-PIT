@@ -32,6 +32,10 @@ class AuthViewModel(
     val userSession: StateFlow<UserSession> = authRepository.currentUserSession
         .asStateFlow(viewModelScope, UserSession())
 
+    // Data Kapal hasil verifikasi eBKP
+    val verifiedVessel: StateFlow<VesselInfo?> = authRepository.verifiedVessel
+        .asStateFlow(viewModelScope, null)
+
     // State Verifikasi BKP Modal
     private val _verificationState = MutableStateFlow<BkpVerificationUiState>(BkpVerificationUiState.Idle)
     val verificationState: StateFlow<BkpVerificationUiState> = _verificationState.asStateFlow()

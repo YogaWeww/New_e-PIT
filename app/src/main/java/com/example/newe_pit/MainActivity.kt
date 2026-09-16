@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import com.example.newe_pit.data.repository.AuthRepository
 import com.example.newe_pit.data.repository.LogbookRepository
 import com.example.newe_pit.ui.navigation.EPITMainAppHost
@@ -12,6 +13,7 @@ import com.example.newe_pit.ui.theme.EPITTheme
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Main Activity Utama Aplikasi e-PIT Mobile.
@@ -27,6 +29,11 @@ class MainActivity : ComponentActivity() {
         // Panggil Android Native Splash Screen API
         installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        // Jalankan seeder sekali untuk mengunggah data kapal ke Firestore
+//        lifecycleScope.launch {
+//            com.example.newe_pit.data.remote.FirestoreSeeder.seedVesselsData()
+//        }
 
         LogbookRepository.initialize(applicationContext)
         AuthRepository.initialize(applicationContext)
