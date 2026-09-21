@@ -31,9 +31,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Jalankan seeder sekali untuk mengunggah data kapal ke Firestore
-//        lifecycleScope.launch {
-//            com.example.newe_pit.data.remote.FirestoreSeeder.seedVesselsData()
-//        }
+        lifecycleScope.launch {
+            com.example.newe_pit.data.remote.FirestoreSeeder.seedVesselsData()
+        }
 
         LogbookRepository.initialize(applicationContext)
         AuthRepository.initialize(applicationContext)

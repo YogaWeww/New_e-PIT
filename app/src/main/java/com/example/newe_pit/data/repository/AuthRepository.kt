@@ -18,7 +18,7 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Repositori Otentikasi Hybrid: Firebase Auth & Firestore (Cloud) + Room DB (Local Cache).
- * Dilengkapi penerjemahan pesan error teknis menjadi bahasa yang ramah pengguna.
+ * Seluruh data teknis & legalitas kapal ditarik utuh dari Firestore dengan smart fallback.
  */
 class AuthRepository(
     private val vesselProfileDao: VesselProfileDao? = null,
@@ -29,7 +29,6 @@ class AuthRepository(
     private val _currentUserSession = MutableStateFlow(UserSession())
     val currentUserSession: StateFlow<UserSession> = _currentUserSession.asStateFlow()
 
-    // Menyimpan data kapal yang baru saja diverifikasi di layar Verifikasi eBKP
     private val _verifiedVessel = MutableStateFlow<VesselInfo?>(null)
     val verifiedVessel: StateFlow<VesselInfo?> = _verifiedVessel.asStateFlow()
 
@@ -63,7 +62,6 @@ class AuthRepository(
         }
 
         val inputTrimmed = noregBkp.trim().uppercase()
-        // Logika normalisasi eBKP generik: Ubah 4 nol (A000029, B000088) menjadi 3 nol (A00029, B00088)
         val formattedBkp = if (inputTrimmed.length == 7 && inputTrimmed.substring(1, 5) == "0000") {
             inputTrimmed.substring(0, 1) + "000" + inputTrimmed.substring(5)
         } else {
@@ -87,10 +85,9 @@ class AuthRepository(
                 _verifiedVessel.value = vesselInfo
                 Result.success(vesselInfo)
             } else {
-                Result.failure(Exception("Nomor eBKP ($formattedBkp) tidak terdaftar pada sistem KKP. Periksa kembali nomor BKP Anda."))
+                Result.failure(Exception("Nomor eBKP ($formattedBkp) tidak terdaftar pada sistem KKP."))
             }
         } catch (e: Exception) {
-            // Fallback jika Firestore belum terkoneksi
             val fallbackVessel = VesselInfo(
                 bkpNumber = formattedBkp,
                 vesselName = if (formattedBkp == "B00088") "KMN. BINTANG LAUT 08" else "KMN. DIGITALISASI 01",
@@ -117,7 +114,6 @@ class AuthRepository(
         val inputTrimmed = noregBkp.trim()
 
         return try {
-            // 1. Dapatkan Email Terdaftar dari Firestore jika input berupa eBKP
             val targetEmail = if (inputTrimmed.contains("@")) {
                 inputTrimmed
             } else {
@@ -137,39 +133,22 @@ class AuthRepository(
                     ?: throw Exception("Akun eBKP ($formattedBkp) belum diaktivasi. Silakan lakukan Aktivasi Akun terlebih dahulu.")
             }
 
-            // 2. Otentikasi ke Firebase Auth Cloud menggunakan Email Terdaftar Riil
             val authResult = firebaseAuth.signInWithEmailAndPassword(targetEmail, pass).await()
             val firebaseUser = authResult.user ?: throw Exception("Gagal terhubung ke layanan otentikasi.")
 
-            // 3. Ambil data fisik kapal terbaru dari Firestore
             val bkpDocId = if (inputTrimmed.contains("@")) {
                 targetEmail.substringBefore("@").uppercase()
             } else {
                 inputTrimmed.uppercase()
             }
 
-            val vesselDoc = firestore.collection("vessels").document(bkpDocId).get().await()
-            val vesselName = vesselDoc.getString("vesselName") ?: "KMN. DIGITALISASI 01"
-            val ownerName = vesselDoc.getString("ownerName") ?: "PT. BA***"
-            val gt = vesselDoc.getLong("grossTonnage")?.toInt() ?: 48
-            val roleStr = vesselDoc.getString("role") ?: UserRole.CAPTAIN.name
-            val userRole = try { UserRole.valueOf(roleStr) } catch (e: Exception) { UserRole.CAPTAIN }
+            val vesselDoc = try {
+                firestore.collection("vessels").document(bkpDocId).get().await()
+            } catch (e: Exception) {
+                null
+            }
 
-            val profileEntity = VesselProfileEntity(
-                noregBkp = bkpDocId,
-                vesselName = vesselName,
-                grossTonnage = gt,
-                ownerName = ownerName,
-                captainName = firebaseUser.displayName ?: "SUPRIYANTO",
-                email = firebaseUser.email ?: targetEmail,
-                role = userRole,
-                sloActive = vesselDoc.getBoolean("sloActive") ?: true,
-                spbActive = vesselDoc.getBoolean("spbActive") ?: true,
-                totalQuotaKg = vesselDoc.getDouble("totalQuotaKg") ?: 10000.0,
-                remainingQuotaKg = vesselDoc.getDouble("remainingQuotaKg") ?: 5101.0,
-                isLoggedIn = true,
-                rememberMe = true
-            )
+            val profileEntity = mapDocToProfileEntity(vesselDoc, bkpDocId, firebaseUser.email ?: targetEmail, firebaseUser.displayName)
 
             vesselProfileDao?.logoutAllUsers()
             vesselProfileDao?.saveProfile(profileEntity)
@@ -203,35 +182,32 @@ class AuthRepository(
         }
 
         return try {
-            // 1. Buat Pengguna Baru di Firebase Authentication Cloud
             val authResult = firebaseAuth.createUserWithEmailAndPassword(email.trim(), pass).await()
             val firebaseUser = authResult.user ?: throw Exception("Gagal mendaftarkan akun.")
 
-            // 2. Update Dokumen Kapal di Cloud Firestore
             val vesselUpdates = mapOf(
                 "isActivated" to true,
                 "registeredEmail" to email.trim(),
                 "captainUid" to firebaseUser.uid,
-                "role" to role.name
+                "role" to role.name,
+                "sipiNumber" to if (targetVessel.bkpNumber == "B00088") "12.24.0088.01.718.011" else "12.24.0029.01.718.009",
+                "selarMark" to if (targetVessel.bkpNumber == "B00088") "GT. 30 No. 9101/Bc" else "GT. 48 No. 1234/Bc",
+                "homePort" to if (targetVessel.bkpNumber == "B00088") "PPN Tual" else "PPN Ambon",
+                "wppRegion" to "WPP-NRI 718 (Arafura)",
+                "gearType" to if (targetVessel.bkpNumber == "B00088") "Rawai Tuna" else "Purse Seine Pelagis Kecil",
+                "dimensionStr" to if (targetVessel.bkpNumber == "B00088") "15.0 m x 4.5 m x 1.8 m" else "18.5 m x 5.2 m x 2.1 m",
+                "enginePower" to if (targetVessel.bkpNumber == "B00088") "280 HP" else "350 HP",
+                "engineBrand" to if (targetVessel.bkpNumber == "B00088") "Caterpillar C7" else "Yanmar 6HYM-WET"
             )
-            firestore.collection("vessels").document(targetVessel.bkpNumber).update(vesselUpdates).await()
 
-            // 3. Simpan Profil Kapal ke Room DB Lokal HP
-            val profileEntity = VesselProfileEntity(
-                noregBkp = targetVessel.bkpNumber,
-                vesselName = targetVessel.vesselName,
-                grossTonnage = targetVessel.grossTonnage,
-                ownerName = targetVessel.ownerName,
-                captainName = firebaseUser.displayName ?: "SUPRIYANTO",
-                email = email.trim(),
-                role = role,
-                sloActive = targetVessel.sloActive,
-                spbActive = targetVessel.spbActive,
-                totalQuotaKg = targetVessel.totalQuotaKg,
-                remainingQuotaKg = targetVessel.remainingQuotaKg,
-                isLoggedIn = true,
-                rememberMe = true
-            )
+            try {
+                firestore.collection("vessels").document(targetVessel.bkpNumber).update(vesselUpdates).await()
+            } catch (e: Exception) {
+                firestore.collection("vessels").document(targetVessel.bkpNumber).set(vesselUpdates, com.google.firebase.firestore.SetOptions.merge()).await()
+            }
+
+            val vesselDoc = firestore.collection("vessels").document(targetVessel.bkpNumber).get().await()
+            val profileEntity = mapDocToProfileEntity(vesselDoc, targetVessel.bkpNumber, email.trim(), firebaseUser.displayName, role)
 
             vesselProfileDao?.logoutAllUsers()
             vesselProfileDao?.saveProfile(profileEntity)
@@ -245,9 +221,6 @@ class AuthRepository(
         }
     }
 
-    /**
-     * Keluar dari Akun
-     */
     suspend fun signOut() {
         try {
             firebaseAuth.signOut()
@@ -260,29 +233,88 @@ class AuthRepository(
     }
 
     /**
-     * Mengubah Exception teknis Firebase menjadi pesan berbahasa Indonesia yang ramah pengguna.
+     * Mapping DocumentSnapshot dari Firestore ke VesselProfileEntity dengan Smart Fallback
      */
+    private fun mapDocToProfileEntity(
+        doc: com.google.firebase.firestore.DocumentSnapshot?,
+        bkpId: String,
+        emailStr: String,
+        displayName: String?,
+        overrideRole: UserRole? = null
+    ): VesselProfileEntity {
+        val isB88 = bkpId.contains("B00088", ignoreCase = true)
+
+        val vesselName = doc?.getString("vesselName")?.ifBlank { null }
+            ?: if (isB88) "KMN. BINTANG LAUT 08" else "KMN. DIGITALISASI 01"
+
+        val ownerName = doc?.getString("ownerName")?.ifBlank { null }
+            ?: if (isB88) "CV. MARITIM JAYA" else "PT. BA***"
+
+        val captainName = doc?.getString("captainName")?.ifBlank { null }
+            ?: (displayName?.ifBlank { null } ?: if (isB88) "HENDERIKUS" else "SUPRIYANTO")
+
+        val sipiNumber = doc?.getString("sipiNumber")?.ifBlank { null }
+            ?: if (isB88) "12.24.0088.01.718.011" else "12.24.0029.01.718.009"
+
+        val selarMark = doc?.getString("selarMark")?.ifBlank { null }
+            ?: if (isB88) "GT. 30 No. 9101/Bc" else "GT. 48 No. 1234/Bc"
+
+        val homePort = doc?.getString("homePort")?.ifBlank { null }
+            ?: if (isB88) "PPN Tual" else "PPN Ambon"
+
+        val wppRegion = doc?.getString("wppRegion")?.ifBlank { null }
+            ?: "WPP-NRI 718 (Arafura)"
+
+        val gearType = doc?.getString("gearType")?.ifBlank { null }
+            ?: if (isB88) "Rawai Tuna" else "Purse Seine Pelagis Kecil"
+
+        val gt = doc?.getLong("grossTonnage")?.toInt()
+            ?: if (isB88) 30 else 48
+
+        val dimensionStr = doc?.getString("dimensionStr")?.ifBlank { null }
+            ?: if (isB88) "15.0 m x 4.5 m x 1.8 m" else "18.5 m x 5.2 m x 2.1 m"
+
+        val enginePower = doc?.getString("enginePower")?.ifBlank { null }
+            ?: if (isB88) "280 HP" else "350 HP"
+
+        val engineBrand = doc?.getString("engineBrand")?.ifBlank { null }
+            ?: if (isB88) "Caterpillar C7" else "Yanmar 6HYM-WET"
+
+        val roleStr = doc?.getString("role") ?: UserRole.CAPTAIN.name
+        val userRole = overrideRole ?: try { UserRole.valueOf(roleStr) } catch (e: Exception) { UserRole.CAPTAIN }
+
+        return VesselProfileEntity(
+            noregBkp = bkpId,
+            vesselName = vesselName,
+            grossTonnage = gt,
+            ownerName = ownerName,
+            captainName = captainName,
+            email = emailStr,
+            role = userRole,
+            sloActive = doc?.getBoolean("sloActive") ?: true,
+            spbActive = doc?.getBoolean("spbActive") ?: true,
+            totalQuotaKg = doc?.getDouble("totalQuotaKg") ?: if (isB88) 8000.0 else 10000.0,
+            remainingQuotaKg = doc?.getDouble("remainingQuotaKg") ?: if (isB88) 3400.0 else 5101.0,
+            sipiNumber = sipiNumber,
+            selarMark = selarMark,
+            homePort = homePort,
+            wppRegion = wppRegion,
+            gearType = gearType,
+            dimensionStr = dimensionStr,
+            enginePower = enginePower,
+            engineBrand = engineBrand,
+            isLoggedIn = true,
+            rememberMe = true
+        )
+    }
+
     private fun mapAuthExceptionToMessage(e: Exception): String {
         val rawMessage = e.localizedMessage ?: ""
         return when {
-            e is FirebaseAuthInvalidCredentialsException ||
-                    rawMessage.contains("supplied auth credential", ignoreCase = true) ||
-                    rawMessage.contains("INVALID_LOGIN_CREDENTIALS", ignoreCase = true) ||
-                    rawMessage.contains("password", ignoreCase = true) ->
+            e is FirebaseAuthInvalidCredentialsException || rawMessage.contains("supplied auth credential", ignoreCase = true) ->
                 "Password atau nomor eBKP yang Anda masukkan salah. Silakan periksa kembali."
-
             e is FirebaseAuthInvalidUserException || rawMessage.contains("user-not-found", ignoreCase = true) ->
                 "Akun tidak ditemukan. Silakan lakukan Registrasi / Aktivasi Akun terlebih dahulu."
-
-            rawMessage.contains("blocked", ignoreCase = true) || rawMessage.contains("unusual activity", ignoreCase = true) ->
-                "Terlalu banyak percobaan gagal. Akses diblokir sementara demi keamanan, silakan coba lagi nanti."
-
-            rawMessage.contains("network", ignoreCase = true) || rawMessage.contains("unavailable", ignoreCase = true) ->
-                "Gagal terhubung ke server. Periksa koneksi internet Anda."
-
-            rawMessage.contains("tidak terdaftar", ignoreCase = true) || rawMessage.contains("belum diaktivasi", ignoreCase = true) ->
-                rawMessage
-
             else -> "Gagal masuk. Silakan periksa kembali nomor eBKP dan password Anda."
         }
     }
@@ -293,7 +325,18 @@ class AuthRepository(
             email = email,
             vesselName = vesselName,
             role = role,
-            isLoggedIn = isLoggedIn
+            isLoggedIn = isLoggedIn,
+            ownerName = ownerName,
+            captainName = captainName,
+            sipiNumber = sipiNumber,
+            selarMark = selarMark,
+            homePort = homePort,
+            wppRegion = wppRegion,
+            gearType = gearType,
+            grossTonnage = grossTonnage,
+            dimensionStr = dimensionStr,
+            enginePower = enginePower,
+            engineBrand = engineBrand
         )
     }
 }

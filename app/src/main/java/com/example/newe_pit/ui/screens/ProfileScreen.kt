@@ -46,9 +46,22 @@ fun ProfileScreen(
     val userSession by authViewModel.userSession.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Data kapal (sesuai dokumen BKP & SIPI resmi di pangkalan)
-    val vesselName = if (userSession.vesselName.isNotBlank()) userSession.vesselName else "KMN. DIGITALISASI 01"
-    val noregBkp = if (userSession.noregBkp.isNotBlank()) userSession.noregBkp else "A000029"
+    // Data kapal dinamis ditarik dari userSession (Firestore / Room DB)
+    val vesselName = if (userSession.vesselName.isNotBlank()) userSession.vesselName else "-"
+    val noregBkp = if (userSession.noregBkp.isNotBlank()) userSession.noregBkp else "-"
+    val userEmail = if (userSession.email.isNotBlank()) userSession.email else "-"
+    val ownerName = if (userSession.ownerName.isNotBlank()) userSession.ownerName else "-"
+    val captainName = if (userSession.captainName.isNotBlank()) userSession.captainName else "-"
+    val sipiNumber = if (userSession.sipiNumber.isNotBlank()) userSession.sipiNumber else "-"
+    val selarMark = if (userSession.selarMark.isNotBlank()) userSession.selarMark else "-"
+    val homePort = if (userSession.homePort.isNotBlank()) userSession.homePort else "-"
+    val wppRegion = if (userSession.wppRegion.isNotBlank()) userSession.wppRegion else "-"
+    val gearType = if (userSession.gearType.isNotBlank()) userSession.gearType else "-"
+    val gtVal = if (userSession.grossTonnage > 0) "${userSession.grossTonnage} GT" else "-"
+    val dimensionVal = if (userSession.dimensionStr.isNotBlank()) userSession.dimensionStr else "-"
+    val powerVal = if (userSession.enginePower.isNotBlank()) userSession.enginePower else "-"
+    val brandVal = if (userSession.engineBrand.isNotBlank()) userSession.engineBrand else "-"
+
     val userRoleLabel = when (userSession.role) {
         UserRole.CAPTAIN -> "Nakhoda Aktif"
         UserRole.SHIP_OWNER -> "Pemilik Kapal"
@@ -156,10 +169,11 @@ fun ProfileScreen(
                         icon = Icons.Default.Description
                     ) {
                         ProfileInfoRow(label = "Nama Kapal", value = vesselName)
-                        ProfileInfoRow(label = "No. Izin (SIPI)", value = "12.24.0029.01.718.009", isMonospace = true)
-                        ProfileInfoRow(label = "Tanda Selar", value = "GT. 48 No. 1234/Bc", isMonospace = true)
-                        ProfileInfoRow(label = "Nama Pemilik", value = "PT. BA***")
-                        ProfileInfoRow(label = "Nama Nakhoda", value = "SUPRIYANTO")
+                        ProfileInfoRow(label = "No. Izin (SIPI)", value = sipiNumber, isMonospace = true)
+                        ProfileInfoRow(label = "Tanda Selar", value = selarMark, isMonospace = true)
+                        ProfileInfoRow(label = "Akun Email", value = userEmail)
+                        ProfileInfoRow(label = "Nama Pemilik", value = ownerName)
+                        ProfileInfoRow(label = "Nama Nakhoda", value = captainName)
                     }
                 }
 
@@ -169,9 +183,9 @@ fun ProfileScreen(
                         title = "Operasional Pangkalan",
                         icon = Icons.Default.Anchor
                     ) {
-                        ProfileInfoRow(label = "Pelabuhan Pangkalan", value = "PPN Ambon")
-                        ProfileInfoRow(label = "Wilayah Pengelolaan", value = "WPP-NRI 718 (Arafura)")
-                        ProfileInfoRow(label = "Jenis Alat Tangkap", value = "Purse Seine Pelagis Kecil")
+                        ProfileInfoRow(label = "Pelabuhan Pangkalan", value = homePort)
+                        ProfileInfoRow(label = "Wilayah Pengelolaan", value = wppRegion)
+                        ProfileInfoRow(label = "Jenis Alat Tangkap", value = gearType)
                     }
                 }
 
@@ -181,10 +195,10 @@ fun ProfileScreen(
                         title = "Spesifikasi Fisik & Mesin",
                         icon = Icons.Default.Build
                     ) {
-                        ProfileInfoRow(label = "Ukuran Tonase", value = "48 GT")
-                        ProfileInfoRow(label = "Dimensi (P x L x D)", value = "18.5 m x 5.2 m x 2.1 m")
-                        ProfileInfoRow(label = "Daya Mesin Pokok", value = "350 HP")
-                        ProfileInfoRow(label = "Merk Mesin", value = "Yanmar 6HYM-WET")
+                        ProfileInfoRow(label = "Ukuran Tonase", value = gtVal)
+                        ProfileInfoRow(label = "Dimensi (P x L x D)", value = dimensionVal)
+                        ProfileInfoRow(label = "Daya Mesin Pokok", value = powerVal)
+                        ProfileInfoRow(label = "Merk Mesin", value = brandVal)
                     }
                 }
 

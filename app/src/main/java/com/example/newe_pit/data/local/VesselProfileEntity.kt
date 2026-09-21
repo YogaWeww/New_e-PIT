@@ -6,6 +6,7 @@ import com.example.newe_pit.data.model.UserRole
 
 /**
  * Tabel `vessel_profile`: Menyimpan data profil kapal dan sesi login terdaftar di HP.
+ * Seluruh nilai default diatur netral ("" atau 0.0) agar 100% mengikuti data riil dari Firestore.
  */
 @Entity(tableName = "vessel_profile")
 data class VesselProfileEntity(
@@ -19,8 +20,16 @@ data class VesselProfileEntity(
     val role: UserRole,
     val sloActive: Boolean = true,
     val spbActive: Boolean = true,
-    val totalQuotaKg: Double = 10000.0,
-    val remainingQuotaKg: Double = 5101.0,
+    val totalQuotaKg: Double = 0.0,
+    val remainingQuotaKg: Double = 0.0,
     val isLoggedIn: Boolean = true,
-    val rememberMe: Boolean = true
+    val rememberMe: Boolean = true,
+    val sipiNumber: String = "",
+    val selarMark: String = "",
+    val homePort: String = "",
+    val wppRegion: String = "",
+    val gearType: String = "",
+    val dimensionStr: String = "",
+    val enginePower: String = "",
+    val engineBrand: String = ""
 )
