@@ -21,7 +21,7 @@ import java.util.Locale
 
 /**
  * Repositori Logbook Perikanan terintegrasi dengan Room Database (SQLite Lokal).
- * Mengelola keranjang tangkapan di memori dan penyimpanan permanen ke Room DB.
+ * Mengelola keranjang tangkapan di memori dan penyimpanan permanen ke Room DB menggunakan GPS asli.
  */
 class LogbookRepository(
     private val haulDao: HaulDao? = null
@@ -51,25 +51,28 @@ class LogbookRepository(
         }
     }
 
-    // Katalog 12 Spesies Ikan WPP-NRI 718
-    private val speciesCatalog = listOf(
-        FishSpecies("SKJ", "Cakalang", "Katsuwonus pelamis"),
-        FishSpecies("BLT", "Tongkol Krakau", "Auxis thazard"),
-        FishSpecies("YFT", "Tuna Madidihang", "Thunnus albacares"),
-        FishSpecies("BET", "Tuna Mata Besar", "Thunnus obesus"),
-        FishSpecies("UDG", "Udang Windu", "Penaeus monodon"),
-        FishSpecies("SWG", "Ikan Swanggi", "Priacanthus tayenus"),
-        FishSpecies("TGR", "Tenggiri", "Scomberomorus commerson"),
-        FishSpecies("KRP", "Kerapu Macan", "Epinephelus fuscoguttatus"),
-        FishSpecies("LYG", "Ikan Layang", "Decapterus russelli"),
-        FishSpecies("LMR", "Ikan Lemuru", "Sardinella lemuru"),
-        FishSpecies("BWL", "Bawal Hitam", "Parastromateus niger"),
-        FishSpecies("KPA", "Kakap Merah", "Lutjanus campechanus")
+    // Katalog 12 Spesies Ikan WPP-NRI 718 (Arafura)
+    private val _availableSpecies = MutableStateFlow(
+        listOf(
+            FishSpecies("SKJ", "Cakalang", "Katsuwonus pelamis"),
+            FishSpecies("BLT", "Tongkol Krakau", "Auxis thazard"),
+            FishSpecies("YFT", "Tuna Madidihang", "Thunnus albacares"),
+            FishSpecies("BET", "Tuna Mata Besar", "Thunnus obesus"),
+            FishSpecies("UDG", "Udang Windu", "Penaeus monodon"),
+            FishSpecies("SWG", "Ikan Swanggi", "Priacanthus tayenus"),
+            FishSpecies("TGR", "Tenggiri", "Scomberomorus commerson"),
+            FishSpecies("KRP", "Kerapu Macan", "Epinephelus fuscoguttatus"),
+            FishSpecies("LYG", "Ikan Layang", "Decapterus russelli"),
+            FishSpecies("LMR", "Ikan Lemuru", "Sardinella lemuru"),
+            FishSpecies("BWL", "Bawal Hitam", "Parastromateus niger"),
+            FishSpecies("KPA", "Kakap Merah", "Lutjanus campechanus")
+        )
     )
+    val availableSpecies: StateFlow<List<FishSpecies>> = _availableSpecies.asStateFlow()
 
     // Draft keranjang tangkapan untuk tawur aktif (In-Memory Draft)
-    private val _cartItems = MutableStateFlow<List<CatchItem>>(emptyList())
-    val cartItems: StateFlow<List<CatchItem>> = _cartItems.asStateFlow()
+    private val _currentCart = MutableStateFlow<List<CatchItem>>(emptyList())
+    val currentCart: StateFlow<List<CatchItem>> = _currentCart.asStateFlow()
 
     // Internal In-Memory Fallback jika Room belum diinisialisasi
     private val _fallbackHaulHistory = MutableStateFlow<List<HaulRecord>>(emptyList())
@@ -81,20 +84,18 @@ class LogbookRepository(
         list.map { it.toDomainModel() }
     } ?: _fallbackHaulHistory.asStateFlow()
 
-    fun getSpeciesCatalog(): List<FishSpecies> = speciesCatalog
-
     fun addItemToCart(item: CatchItem) {
-        val currentList = _cartItems.value.toMutableList()
+        val currentList = _currentCart.value.toMutableList()
         currentList.add(item)
-        _cartItems.value = currentList
+        _currentCart.value = currentList
     }
 
     fun removeItemFromCart(itemId: String) {
-        _cartItems.value = _cartItems.value.filter { it.id != itemId }
+        _currentCart.value = _currentCart.value.filter { it.id != itemId }
     }
 
     fun clearCart() {
-        _cartItems.value = emptyList()
+        _currentCart.value = emptyList()
     }
 
     fun clearHaulHistory() {
@@ -103,15 +104,16 @@ class LogbookRepository(
 
     /**
      * Menyimpan data 1 tawur utuh ke Room Database (SQLite Lokal HP)
+     * Menggunakan Koordinat GPS Asli dari Perangkat (Tanpa default Jakarta)
      */
     suspend fun saveCurrentHaul(
-        startLat: Double = -6.178564,
-        startLong: Double = 106.831934,
-        endLat: Double = -6.179120,
-        endLong: Double = 106.834110,
-        soakMinutes: Long = 135L
+        startLat: Double = 0.0,
+        startLong: Double = 0.0,
+        endLat: Double = 0.0,
+        endLong: Double = 0.0,
+        soakMinutes: Long = 0L
     ): Result<HaulRecord> {
-        val items = _cartItems.value
+        val items = _currentCart.value
         if (items.isEmpty()) {
             return Result.failure(Exception("Keranjang tangkapan masih kosong."))
         }

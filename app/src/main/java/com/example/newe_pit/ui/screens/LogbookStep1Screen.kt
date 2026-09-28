@@ -1,45 +1,47 @@
 package com.example.newe_pit.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.DirectionsBoat
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.GpsFixed
 import androidx.compose.material.icons.filled.MoveToInbox
+import androidx.compose.material.icons.filled.QueryStats
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.newe_pit.R
 import com.example.newe_pit.ui.components.EPITCardContainer
-import com.example.newe_pit.ui.components.EPITOutlinedButton
-import com.example.newe_pit.ui.components.EPITPrimaryButton
-import com.example.newe_pit.ui.components.StatusBadge
 import com.example.newe_pit.ui.theme.ActionCyan
 import com.example.newe_pit.ui.theme.CardBorder
-import com.example.newe_pit.ui.theme.CardSurface
 import com.example.newe_pit.ui.theme.PrimaryNavy
+import com.example.newe_pit.ui.theme.StatusGreen
+import com.example.newe_pit.ui.theme.StopRed
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
- * Layar Logbook Step 1: Ready to Setting (Sebelum Alat Tangkap Diturunkan).
- * Menampilkan status GPS aktif, informasi kapal, kalibrasi, serta akses Alih Muatan.
+ * Layar Logbook Step 1: Persiapan Mulai Setting & Pembacaan GPS Asli Perangkat.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,19 +49,102 @@ fun LogbookStep1Screen(
     logbookViewModel: LogbookViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToNextStep: () -> Unit,
-    onNavigateToTransshipment: () -> Unit = {}
+    onNavigateToTransshipment: () -> Unit
 ) {
-    var isRecalibrating by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val startLat by logbookViewModel.startLatitude.collectAsState()
+    val startLong by logbookViewModel.startLongitude.collectAsState()
+    val isGpsLoading by logbookViewModel.isGpsLoading.collectAsState()
+    val isGpsHardwareActive by logbookViewModel.isGpsHardwareActive.collectAsState()
+    val userMessage by logbookViewModel.userMessage.collectAsState()
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFF8FAFC)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-        ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(userMessage) {
+        userMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            logbookViewModel.clearUserMessage()
+        }
+    }
+
+    var hasLocationPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+
+        if (hasLocationPermission) {
+            logbookViewModel.updateCurrentLocation(context)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (!hasLocationPermission) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        } else {
+            logbookViewModel.updateCurrentLocation(context)
+        }
+    }
+
+    val isGpsLocked = isGpsHardwareActive && startLat != 0.0
+
+    val headerTitle = when {
+        !isGpsHardwareActive -> "GPS HP NONAKTIF"
+        isGpsLoading -> "MEMPROSES KALIBRASI GPS"
+        isGpsLocked -> "GPS AKTIF & TERKUNCI"
+        else -> "SINYAL BELUM TERKUNCI"
+    }
+
+    val headerTitleColor = when {
+        !isGpsHardwareActive -> StopRed
+        isGpsLocked -> PrimaryNavy
+        else -> ActionCyan
+    }
+
+    val badgeText = when {
+        !isGpsHardwareActive -> "GPS Mati"
+        isGpsLoading -> "Memproses..."
+        isGpsLocked -> "Akurasi ± 4m"
+        else -> "Belum Terkunci"
+    }
+
+    val badgeColor = when {
+        !isGpsHardwareActive || (!isGpsLocked && !isGpsLoading) -> StopRed
+        isGpsLocked -> StatusGreen
+        else -> ActionCyan
+    }
+
+    val latDisplay = when {
+        !isGpsHardwareActive -> "GPS Nonaktif"
+        isGpsLoading -> "Memperbarui..."
+        startLat != 0.0 -> String.format("%.6f %s", Math.abs(startLat), if (startLat >= 0) "N" else "S")
+        else -> "Tekan Kalibrasi"
+    }
+
+    val longDisplay = when {
+        !isGpsHardwareActive -> "GPS Nonaktif"
+        isGpsLoading -> "Memperbarui..."
+        startLong != 0.0 -> String.format("%.6f %s", Math.abs(startLong), if (startLong >= 0) "E" else "W")
+        else -> "Tekan Kalibrasi"
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
             TopAppBar(
                 title = {
                     Text(
@@ -80,177 +165,267 @@ fun LogbookStep1Screen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
-
-            Column(
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // 1. HERO HEADER KAPAL
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .clip(RoundedCornerShape(18.dp))
             ) {
-                // Vessel Photo Card Banner
+                Image(
+                    painter = painterResource(id = R.drawable.gambar_kapal),
+                    contentDescription = "Kapal",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(PrimaryNavy)
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                            )
+                        )
+                )
+                Text(
+                    text = "KMN. DIGITALISASI 01",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp)
+                )
+            }
+
+            // 2. KARTU STATUS GPS
+            EPITCardContainer {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.onboarding_1),
-                        contentDescription = "Foto Kapal",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f))
-                    )
                     Text(
-                        text = "KMN. DIGITALISASI 01",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(16.dp)
+                        text = headerTitle,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = headerTitleColor,
+                        letterSpacing = 0.5.sp
                     )
+
+                    Surface(
+                        color = badgeColor.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(badgeColor, RoundedCornerShape(3.dp))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = badgeText,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = badgeColor
+                            )
+                        }
+                    }
                 }
 
-                EPITCardContainer {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        Text(text = "Latitude:", fontSize = 12.sp, color = Color(0xFF64748B))
                         Text(
-                            text = "GPS AKTIF & TERKUNCI",
+                            text = latDisplay,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (!isGpsHardwareActive) StopRed else PrimaryNavy,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Longitude:", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Text(
+                            text = longDisplay,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (!isGpsHardwareActive) StopRed else PrimaryNavy,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(text = "Wilayah WPP:", fontSize = 12.sp, color = Color(0xFF64748B))
+                        Text(
+                            text = "WPP-NRI 718",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = ActionCyan
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedButton(
+                    onClick = { logbookViewModel.updateCurrentLocation(context) },
+                    enabled = !isGpsLoading,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ActionCyan)
+                ) {
+                    if (isGpsLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = ActionCyan,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Memperbarui GPS...",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ActionCyan
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.GpsFixed,
+                            contentDescription = "Kalibrasi GPS",
+                            tint = ActionCyan,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Kalibrasi Ulang GPS",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = PrimaryNavy
                         )
-                        StatusBadge(text = "Akurasi ± 4m", isActive = true)
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFFF1F5F9), RoundedCornerShape(12.dp))
-                            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-                            .padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Latitude:", fontSize = 12.sp, color = Color(0xFF64748B))
-                            Text(text = "6.178564 S", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Longitude:", fontSize = 12.sp, color = Color(0xFF64748B))
-                            Text(text = "106.831934 E", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "Wilayah WPP:", fontSize = 12.sp, color = Color(0xFF64748B))
-                            Text(text = "WPP-NRI 718", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ActionCyan)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = { isRecalibrating = true },
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ActionCyan),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, ActionCyan),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.GpsFixed,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isRecalibrating) "Mengkalibrasi..." else "Kalibrasi Ulang GPS",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
+            }
 
-                // Tombol Aksi Sekunder (Alih Muatan & Sampling)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // 3. AKSI OPSIONAL
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onNavigateToTransshipment,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
                 ) {
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardSurface),
-                        modifier = Modifier
-                            .weight(1f)
-                            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-                            .clickable { onNavigateToTransshipment() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoveToInbox,
-                                contentDescription = null,
-                                tint = ActionCyan,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Alih Muatan",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryNavy
-                            )
-                        }
-                    }
-
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardSurface),
-                        modifier = Modifier
-                            .weight(1f)
-                            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Assignment,
-                                contentDescription = null,
-                                tint = ActionCyan,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Sampling",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryNavy
-                            )
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.MoveToInbox,
+                        contentDescription = null,
+                        tint = ActionCyan,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Alih Muatan",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { /* Handle Sampling */ },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QueryStats,
+                        contentDescription = null,
+                        tint = ActionCyan,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Sampling",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
+                }
+            }
 
-                EPITPrimaryButton(
-                    text = "Mulai Setting (Turun Jaring)",
-                    icon = Icons.Default.Flag,
-                    onClick = {
-                        logbookViewModel.startSetting()
-                        onNavigateToNextStep()
-                    }
-                )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // 4. TOMBOL UTAMA MULAI SETTING
+            Button(
+                onClick = {
+                    logbookViewModel.startSetting(context)
+                    onNavigateToNextStep()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = ActionCyan,
+                    contentColor = PrimaryNavy
+                ),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Flag,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Mulai Setting (Turun Jaring)",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

@@ -174,7 +174,7 @@ fun EPITMainAppHost(
                 LogbookStep3Screen(
                     logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToCart  = { navController.navigate(Screen.LogbookStep4.route) }
+                    onOpenCart  = { navController.navigate(Screen.LogbookStep4.route) }
                 )
             }
             composable(Screen.LogbookStep4.route) {

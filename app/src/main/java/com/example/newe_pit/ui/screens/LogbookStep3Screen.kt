@@ -8,15 +8,12 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SetMeal
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,33 +28,39 @@ import com.example.newe_pit.ui.components.EPITStepperControl
 import com.example.newe_pit.ui.components.EmptySearchState
 import com.example.newe_pit.ui.theme.ActionCyan
 import com.example.newe_pit.ui.theme.CardBorder
-import com.example.newe_pit.ui.theme.CardSurface
 import com.example.newe_pit.ui.theme.PrimaryNavy
-import com.example.newe_pit.ui.theme.StopRed
 import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
- * Layar Logbook Step 3: Katalog Spesies Scrollable & Input Tangkapan Presisi (Manual Typing + Quick Adjustment).
+ * Layar Logbook Step 3: Pemilihan Spesies & Input Berat/Jumlah Tangkapan (Nilai Awal 0).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogbookStep3Screen(
     logbookViewModel: LogbookViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToCart: () -> Unit
+    onOpenCart: () -> Unit
 ) {
+    val speciesCatalog by logbookViewModel.speciesCatalog.collectAsState()
     val cartItems by logbookViewModel.cartItems.collectAsState()
     val userMessage by logbookViewModel.userMessage.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedSpecies by remember { mutableStateOf("Cakalang") }
-    var weightKg by remember { mutableIntStateOf(300) }
-    var quantityCount by remember { mutableIntStateOf(3) }
 
-    val filteredSpecies = remember(searchQuery) {
-        logbookViewModel.speciesCatalog.filter {
-            it.name.contains(searchQuery, ignoreCase = true) ||
-                    it.code.contains(searchQuery, ignoreCase = true)
+    // Nilai Awal Berat & Jumlah Tangkapan Dihitung dari 0
+    var weightKg by remember { mutableStateOf(0) }
+    var quantityCount by remember { mutableStateOf(0) }
+
+    val filteredSpecies = remember(searchQuery, speciesCatalog) {
+        if (searchQuery.isBlank()) {
+            speciesCatalog
+        } else {
+            speciesCatalog.filter {
+                it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.code.contains(searchQuery, ignoreCase = true) ||
+                        it.scientificName.contains(searchQuery, ignoreCase = true)
+            }
         }
     }
 
@@ -76,7 +79,7 @@ fun LogbookStep3Screen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Detail Tangkapan",
+                        text = "Detail & Cart Tangkapan",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryNavy
@@ -92,32 +95,24 @@ fun LogbookStep3Screen(
                     }
                 },
                 actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .clickable { onNavigateToCart() },
-                        contentAlignment = Alignment.TopEnd
-                    ) {
-                        IconButton(onClick = onNavigateToCart) {
+                    Box(modifier = Modifier.padding(end = 8.dp)) {
+                        IconButton(onClick = onOpenCart) {
                             Icon(
-                                imageVector = Icons.Default.ShoppingCart,
+                                imageVector = Icons.Default.SetMeal,
                                 contentDescription = "Keranjang",
-                                tint = PrimaryNavy,
-                                modifier = Modifier.size(26.dp)
+                                tint = PrimaryNavy
                             )
                         }
                         if (cartItems.isNotEmpty()) {
-                            Box(
-                                modifier = Modifier
-                                    .size(18.dp)
-                                    .background(StopRed, CircleShape),
-                                contentAlignment = Alignment.Center
+                            Badge(
+                                containerColor = ActionCyan,
+                                contentColor = PrimaryNavy,
+                                modifier = Modifier.align(Alignment.TopEnd)
                             ) {
                                 Text(
                                     text = cartItems.size.toString(),
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
                                 )
                             }
                         }
@@ -139,23 +134,17 @@ fun LogbookStep3Screen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari jenis ikan...", fontSize = 13.sp) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = Color(0xFF94A3B8)
-                    )
-                },
+                placeholder = { Text("Cari jenis ikan / kode FAO...", fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF64748B)) },
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
                     focusedBorderColor = ActionCyan,
-                    unfocusedBorderColor = CardBorder
-                ),
-                modifier = Modifier.fillMaxWidth()
+                    unfocusedBorderColor = CardBorder,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                )
             )
 
             Row(
@@ -171,7 +160,7 @@ fun LogbookStep3Screen(
                     letterSpacing = 1.sp
                 )
                 Text(
-                    text = "${filteredSpecies.size} Jenis (Scrollable)",
+                    text = "${filteredSpecies.size} Jenis",
                     fontSize = 11.sp,
                     color = ActionCyan,
                     fontWeight = FontWeight.SemiBold
@@ -185,11 +174,10 @@ fun LogbookStep3Screen(
                     modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                // Grid Spesies Scrollable dalam Container Berukuran Terukur (Maksimal 220dp)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(220.dp)
+                        .height(210.dp)
                         .background(Color.White, RoundedCornerShape(12.dp))
                         .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
                         .padding(8.dp)
@@ -249,40 +237,61 @@ fun LogbookStep3Screen(
 
             EPITCardContainer {
                 Text(
-                    text = "Spesies Terpilih: $selectedSpecies",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = ActionCyan
+                    text = "INPUT TANGKAPAN: $selectedSpecies",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = PrimaryNavy
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
 
                 EPITStepperControl(
-                    label = "Berat (kg) - Ketik manual atau gunakan tombol:",
+                    label = "Estimasi Berat Tangkapan",
                     value = weightKg,
-                    onValueChange = { weightKg = it },
+                    onValueChange = { weightKg = if (it < 0) 0 else it },
+                    unit = "Kg",
                     quickSteps = listOf(10, 50)
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 EPITStepperControl(
-                    label = "Jumlah (ekor) - Ketik manual atau gunakan tombol:",
+                    label = "Jumlah Tangkapan",
                     value = quantityCount,
-                    onValueChange = { quantityCount = it },
-                    quickSteps = listOf(1, 5)
+                    onValueChange = { quantityCount = if (it < 0) 0 else it },
+                    unit = "Ekor",
+                    quickSteps = listOf(1, 10)
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             EPITPrimaryButton(
-                text = "Tambah ke Daftar Tangkapan",
-                icon = Icons.Default.AddShoppingCart,
+                text = "Tambah ke Keranjang",
+                enabled = weightKg > 0,
                 onClick = {
-                    logbookViewModel.addItemToCart(selectedSpecies, weightKg, quantityCount)
+                    logbookViewModel.addItemToCart(
+                        speciesName = selectedSpecies,
+                        weightKg = weightKg,
+                        quantityCount = quantityCount
+                    )
+                    // Reset input setelah dimasukkan ke keranjang
+                    weightKg = 0
+                    quantityCount = 0
                 }
             )
+
+            if (cartItems.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = onOpenCart,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "Lihat Keranjang (${cartItems.size} Jenis | ${cartItems.sumOf { it.weightKg }} kg)",
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
+                }
+            }
         }
     }
 }

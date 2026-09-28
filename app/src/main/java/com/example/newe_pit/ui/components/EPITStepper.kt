@@ -17,13 +17,14 @@ import androidx.compose.ui.unit.sp
 import com.example.newe_pit.ui.theme.*
 
 /**
- * Komponen Reusable: Stepper Control dengan Input Manual Direct Typing & Tombol Penyesuaian Cepat Rapi.
+ * Komponen Reusable: Stepper Control dengan Input Manual Direct Typing, Badge Satuan (Unit), & Tombol Penyesuaian Cepat Rapi.
  */
 @Composable
 fun EPITStepperControl(
     label: String,
     value: Int,
     onValueChange: (Int) -> Unit,
+    unit: String? = null,
     quickSteps: List<Int> = listOf(10, 50)
 ) {
     Column(
@@ -31,13 +32,34 @@ fun EPITStepperControl(
             .fillMaxWidth()
             .padding(vertical = 6.dp)
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryNavy,
-            modifier = Modifier.padding(bottom = 6.dp)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryNavy
+            )
+            unit?.let {
+                Surface(
+                    color = ActionCyan.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = it,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -48,7 +70,7 @@ fun EPITStepperControl(
             quickSteps.reversed().forEach { step ->
                 Button(
                     onClick = { onValueChange((value - step).coerceAtLeast(0)) },
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF1F5F9),
@@ -62,9 +84,9 @@ fun EPITStepperControl(
                 }
             }
 
-            // Input Manual Field Interaktif (Langsung diketik misal 312)
+            // Input Manual Field Interaktif (Menampilkan angka 0 secara default)
             OutlinedTextField(
-                value = if (value == 0) "" else value.toString(),
+                value = value.toString(),
                 onValueChange = { input ->
                     val parsed = input.filter { it.isDigit() }.toIntOrNull() ?: 0
                     onValueChange(parsed)
@@ -93,7 +115,7 @@ fun EPITStepperControl(
             quickSteps.forEach { step ->
                 Button(
                     onClick = { onValueChange(value + step) },
-                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFF1F5F9),
