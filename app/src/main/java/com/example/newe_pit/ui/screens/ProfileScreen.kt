@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -27,14 +28,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.newe_pit.R
+import com.example.newe_pit.data.local.EPITDatabase
+import com.example.newe_pit.data.model.SyncStatus
 import com.example.newe_pit.data.model.UserRole
+import com.example.newe_pit.data.sync.NetworkObserver
+import com.example.newe_pit.data.sync.SyncManager
+import com.example.newe_pit.ui.components.SyncStatusBanner
 import com.example.newe_pit.ui.theme.*
 import com.example.newe_pit.ui.viewmodel.AuthViewModel
+import kotlinx.coroutines.flow.map
 
 /**
  * Layar Profil Kapal e-PIT Mobile
  * Menampilkan data teknis kapal, perizinan, mesin, dimensi,
- * serta akses cepat menuju Link Layanan Resmi KKP & Pusat Bantuan Helpdesk.
+ * indikator status sinkronisasi online/offline, serta akses pusat bantuan.
  */
 @Composable
 fun ProfileScreen(
@@ -43,8 +50,22 @@ fun ProfileScreen(
     onNavigateToHelpSupport: () -> Unit = {},
     onSignOut: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val userSession by authViewModel.userSession.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    // Service Observasi Sinyal Jaringan & Database Offline
+    val networkObserver = remember { NetworkObserver(context) }
+    val syncManager = remember { SyncManager(context) }
+    val database = remember { EPITDatabase.getDatabase(context) }
+
+    val isOnline by networkObserver.isOnline.collectAsState(initial = true)
+    val pendingCountFlow = remember {
+        database.haulDao().getAllHaulsWithItemsFlow().map { list ->
+            list.count { it.haulRecord.syncStatus == SyncStatus.OFFLINE_PENDING }
+        }
+    }
+    val pendingCount by pendingCountFlow.collectAsState(initial = 0)
 
     // Data kapal dinamis ditarik dari userSession (Firestore / Room DB)
     val vesselName = if (userSession.vesselName.isNotBlank()) userSession.vesselName else "-"
@@ -101,7 +122,16 @@ fun ProfileScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. KARTU HEADER: FOTO & IDENTITAS KAPAL
+                // 1. BANNER STATUS SINKRONISASI ONLINE / OFFLINE
+                item {
+                    SyncStatusBanner(
+                        pendingCount = pendingCount,
+                        isOnline = isOnline,
+                        onSyncNowClick = { syncManager.scheduleSyncNow() }
+                    )
+                }
+
+                // 2. KARTU HEADER: FOTO & IDENTITAS KAPAL
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -162,7 +192,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 2. KARTU IDENTITAS & LEGALITAS PERIZINAN
+                // 3. KARTU IDENTITAS & LEGALITAS PERIZINAN
                 item {
                     ProfileSectionCard(
                         title = "Legalitas & Perizinan",
@@ -177,7 +207,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 3. KARTU OPERASIONAL & WILAYAH
+                // 4. KARTU OPERASIONAL & WILAYAH
                 item {
                     ProfileSectionCard(
                         title = "Operasional Pangkalan",
@@ -189,7 +219,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 4. KARTU SPESIFIKASI TEKNIS & MESIN
+                // 5. KARTU SPESIFIKASI TEKNIS & MESIN
                 item {
                     ProfileSectionCard(
                         title = "Spesifikasi Fisik & Mesin",
@@ -202,7 +232,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 5. KARTU PUSAT BANTUAN & LAYANAN RESMI
+                // 6. KARTU PUSAT BANTUAN & LAYANAN RESMI
                 item {
                     ProfileSectionCard(
                         title = "Pusat Bantuan & Layanan",
@@ -226,7 +256,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // 6. TOMBOL KELUAR (LOGOUT)
+                // 7. TOMBOL KELUAR (LOGOUT)
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
 
