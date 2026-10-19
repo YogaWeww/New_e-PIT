@@ -179,9 +179,10 @@ fun EPITMainAppHost(
             }
             composable(Screen.LogbookStep4.route) {
                 LogbookStep4Screen(
+                    authViewModel = authViewModel,
                     logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToHome = {
+                    onSaveSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }

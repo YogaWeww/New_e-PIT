@@ -18,38 +18,33 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 enum class SettingState {
-    READY_TO_SETTING,  // Layar Logbook-1 (GPS Aktif, Belum Turun Jaring)
-    SOAKING_ACTIVE,    // Layar Logbook-2 (Sedang Direndam, Timer Berjalan)
-    CATCH_PICKER,      // Layar Logbook-3 (Detail & Cart Tangkapan)
-    REVIEW_HAUL        // Layar Logbook-4 (Daftar Tangkapan Tawur Ini)
+    READY_TO_SETTING,
+    SOAKING_ACTIVE,
+    CATCH_PICKER,
+    REVIEW_HAUL
 }
 
 /**
- * ViewModel untuk Mengelola Alur Kerja e-Logbook, Perendaman Dinamis (Mulai 0s), dan GPS Real-Time
+ * ViewModel Logbook Perikanan dengan Pengikatan Nomor eBKP
  */
 class LogbookViewModel(
     private val logbookRepository: LogbookRepository = LogbookRepository.instance
 ) : ViewModel() {
 
-    // Status Tahapan Logbook
     private val _currentSettingState = MutableStateFlow(SettingState.READY_TO_SETTING)
     val currentSettingState: StateFlow<SettingState> = _currentSettingState.asStateFlow()
 
-    // Timer Perendaman (Soak Time) Dimulai dari 0 detik secara dinamis
     private val _soakTimeSeconds = MutableStateFlow(0L)
     val soakTimeSeconds: StateFlow<Long> = _soakTimeSeconds.asStateFlow()
 
     private var timerJob: Job? = null
 
-    // Status Loading Kalibrasi GPS
     private val _isGpsLoading = MutableStateFlow(false)
     val isGpsLoading: StateFlow<Boolean> = _isGpsLoading.asStateFlow()
 
-    // Status Sakelar GPS Fisik HP (Aktif/Mati)
     private val _isGpsHardwareActive = MutableStateFlow(false)
     val isGpsHardwareActive: StateFlow<Boolean> = _isGpsHardwareActive.asStateFlow()
 
-    // Koordinat GPS Real-time
     private val _startLatitude = MutableStateFlow(0.0)
     val startLatitude: StateFlow<Double> = _startLatitude.asStateFlow()
 
@@ -62,10 +57,7 @@ class LogbookViewModel(
     private val _endLongitude = MutableStateFlow(0.0)
     val endLongitude: StateFlow<Double> = _endLongitude.asStateFlow()
 
-    // Catalog Spesies dari Repositori
     val speciesCatalog: StateFlow<List<FishSpecies>> = logbookRepository.availableSpecies
-
-    // State Item Keranjang & Histori Hauling
     val cartItems: StateFlow<List<CatchItem>> = logbookRepository.currentCart
     val haulHistory: StateFlow<List<HaulRecord>> = logbookRepository.haulHistory
         .stateIn(
@@ -74,14 +66,9 @@ class LogbookViewModel(
             initialValue = emptyList()
         )
 
-    // Feedback Message Toast / Snackbar
     private val _userMessage = MutableStateFlow<String?>(null)
     val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
 
-    /**
-     * Memperbarui posisi koordinat GPS terkini dari perangkat secara asinkron dengan loading state.
-     * Mengunci nilai 'Setting Awal' jika sedang di Step 1, dan hanya memperbarui 'Setting Akhir' jika sedang di Step 2 (Perendaman).
-     */
     fun updateCurrentLocation(context: Context) {
         viewModelScope.launch {
             _isGpsLoading.value = true
@@ -91,7 +78,6 @@ class LogbookViewModel(
 
             if (!isGpsActive) {
                 _isGpsLoading.value = false
-                // Hanya reset koordinat yang sesuai dengan tahapannya, JANGAN sentuh Setting Awal jika sudah di Step 2!
                 if (_currentSettingState.value == SettingState.READY_TO_SETTING) {
                     _startLatitude.value = 0.0
                     _startLongitude.value = 0.0
@@ -108,11 +94,9 @@ class LogbookViewModel(
 
             if (location != null) {
                 if (_currentSettingState.value == SettingState.READY_TO_SETTING) {
-                    // Update Setting Awal (Turun Jaring) di Step 1
                     _startLatitude.value = location.latitude
                     _startLongitude.value = location.longitude
                 } else {
-                    // Update Setting Akhir (Angkat Jaring) di Step 2
                     _endLatitude.value = location.latitude
                     _endLongitude.value = location.longitude
                 }
@@ -127,10 +111,6 @@ class LogbookViewModel(
         }
     }
 
-    /**
-     * Menjalankan Perendaman (Mulai Setting / Turun Jaring)
-     * Resets timer ke 0 dan mengunci GPS Awal
-     */
     fun startSetting(context: Context? = null) {
         _soakTimeSeconds.value = 0L
 
@@ -148,10 +128,6 @@ class LogbookViewModel(
         startSoakTimer()
     }
 
-    /**
-     * Menghentikan Perendaman (Selesai Setting / Angkat Jaring)
-     * Catat GPS Akhir & Buka Form Tangkapan
-     */
     fun finishSetting(context: Context? = null) {
         stopSoakTimer()
 
@@ -189,9 +165,6 @@ class LogbookViewModel(
         timerJob = null
     }
 
-    /**
-     * Menambahkan Spesies ke Keranjang Tangkapan
-     */
     fun addItemToCart(speciesName: String, weightKg: Int, quantityCount: Int) {
         if (weightKg <= 0) {
             _userMessage.value = "Berat ikan harus lebih dari 0 kg."
@@ -223,12 +196,13 @@ class LogbookViewModel(
     }
 
     /**
-     * Menyimpan Data Tawur Utuh secara Permanen menggunakan Koordinat GPS Asli
+     * Menyimpan Data Tawur Utuh secara Permanen terikat dengan nomor eBKP
      */
-    fun saveCurrentHaul(onSuccess: () -> Unit) {
+    fun saveCurrentHaul(noregBkp: String, onSuccess: () -> Unit) {
         viewModelScope.launch {
             val soakMinutes = if (_soakTimeSeconds.value < 60) 1L else _soakTimeSeconds.value / 60
             val result = logbookRepository.saveCurrentHaul(
+                noregBkp = noregBkp,
                 startLat = _startLatitude.value,
                 startLong = _startLongitude.value,
                 endLat = _endLatitude.value,

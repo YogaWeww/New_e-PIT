@@ -19,18 +19,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.newe_pit.data.local.EPITDatabase
 import com.example.newe_pit.data.model.HaulRecord
+import com.example.newe_pit.data.model.SyncStatus
+import com.example.newe_pit.data.sync.NetworkObserver
+import com.example.newe_pit.data.sync.SyncManager
 import com.example.newe_pit.ui.components.EmptyHaulHistoryState
 import com.example.newe_pit.ui.components.StatusBadge
+import com.example.newe_pit.ui.components.SyncStatusBanner
 import com.example.newe_pit.ui.theme.*
 import com.example.newe_pit.ui.viewmodel.HomeViewModel
+import kotlinx.coroutines.flow.map
 
 /**
- * Layar Beranda (Home Screen) e-PIT Mobile.
- * Mengintegrasikan EmptyHaulHistoryState ketika belum ada catatan hauling pada trip pelayaran.
+ * Layar Beranda (Home Screen) e-PIT Mobile
+ * Mengintegrasikan SyncStatusBanner, informasi kuota kapal, aksi cepat,
+ * serta daftar riwayat hauling.
  */
 @Composable
 fun HomeScreen(
@@ -43,8 +51,23 @@ fun HomeScreen(
     onNavigateToHelpSupport: () -> Unit = {},
     onNavigateToQuotaDetail: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val vesselInfo by homeViewModel.vesselInfo.collectAsState()
     val recentHauls by homeViewModel.recentHauls.collectAsState()
+
+    // 1. Inisialisasi Service Network & Room Database
+    val networkObserver = remember { NetworkObserver(context) }
+    val syncManager = remember { SyncManager(context) }
+    val database = remember { EPITDatabase.getDatabase(context) }
+
+    // 2. Stream Status Online & Jumlah Antrean Offline (SyncStatus.OFFLINE_PENDING)
+    val isOnline by networkObserver.isOnline.collectAsState(initial = true)
+    val pendingCountFlow = remember {
+        database.haulDao().getAllHaulsWithItemsFlow().map { list ->
+            list.count { it.haulRecord.syncStatus == SyncStatus.OFFLINE_PENDING }
+        }
+    }
+    val pendingCount by pendingCountFlow.collectAsState(initial = 0)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -55,6 +78,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .statusBarsPadding()
         ) {
+            // Header Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -84,11 +108,6 @@ fun HomeScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
-                            .background(StatusGreen, CircleShape)
-                    )
-                    Box(
-                        modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(Color(0xFFE0F7FA))
@@ -112,6 +131,14 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // 3. PASANG BANNER SINKRONISASI DI SINI
+                SyncStatusBanner(
+                    pendingCount = pendingCount,
+                    isOnline = isOnline,
+                    onSyncNowClick = { syncManager.scheduleSyncNow() }
+                )
+
+                // Kartu Kuota Tangkap
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryNavy),
@@ -185,6 +212,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Status SLO & SPB
                 Card(
                     shape = RoundedCornerShape(14.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -228,6 +256,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Bagian Aksi Cepat
                 Column {
                     Row(
                         modifier = Modifier
@@ -296,6 +325,7 @@ fun HomeScreen(
                     }
                 }
 
+                // Bagian Riwayat Hauling
                 Column {
                     Row(
                         modifier = Modifier.fillMaxWidth(),

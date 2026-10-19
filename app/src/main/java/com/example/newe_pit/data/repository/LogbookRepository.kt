@@ -20,8 +20,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Repositori Logbook Perikanan terintegrasi dengan Room Database (SQLite Lokal).
- * Mengelola keranjang tangkapan di memori dan penyimpanan permanen ke Room DB menggunakan GPS asli.
+ * Repositori Logbook Perikanan terintegrasi dengan Room Database.
+ * Mengikat seluruh pencatatan tawur dengan `noregBkp` akun kapal yang aktif.
  */
 class LogbookRepository(
     private val haulDao: HaulDao? = null
@@ -38,9 +38,6 @@ class LogbookRepository(
                 instance
             }
 
-        /**
-         * Inisialisasi Repositori dengan Context Aplikasi untuk menghubungkan Room Database
-         */
         fun initialize(context: Context): LogbookRepository {
             return INSTANCE ?: synchronized(this) {
                 val db = EPITDatabase.getDatabase(context)
@@ -51,7 +48,6 @@ class LogbookRepository(
         }
     }
 
-    // Katalog 12 Spesies Ikan WPP-NRI 718 (Arafura)
     private val _availableSpecies = MutableStateFlow(
         listOf(
             FishSpecies("SKJ", "Cakalang", "Katsuwonus pelamis"),
@@ -70,16 +66,11 @@ class LogbookRepository(
     )
     val availableSpecies: StateFlow<List<FishSpecies>> = _availableSpecies.asStateFlow()
 
-    // Draft keranjang tangkapan untuk tawur aktif (In-Memory Draft)
     private val _currentCart = MutableStateFlow<List<CatchItem>>(emptyList())
     val currentCart: StateFlow<List<CatchItem>> = _currentCart.asStateFlow()
 
-    // Internal In-Memory Fallback jika Room belum diinisialisasi
     private val _fallbackHaulHistory = MutableStateFlow<List<HaulRecord>>(emptyList())
 
-    /**
-     * Observable Stream untuk Riwayat Hauling (Membaca secara real-time dari Room DB)
-     */
     val haulHistory: Flow<List<HaulRecord>> = haulDao?.getAllHaulsWithItemsFlow()?.map { list ->
         list.map { it.toDomainModel() }
     } ?: _fallbackHaulHistory.asStateFlow()
@@ -104,9 +95,10 @@ class LogbookRepository(
 
     /**
      * Menyimpan data 1 tawur utuh ke Room Database (SQLite Lokal HP)
-     * Menggunakan Koordinat GPS Asli dari Perangkat (Tanpa default Jakarta)
+     * Mengikat pencatatan dengan `noregBkp` akun kapal.
      */
     suspend fun saveCurrentHaul(
+        noregBkp: String,
         startLat: Double = 0.0,
         startLong: Double = 0.0,
         endLat: Double = 0.0,
@@ -124,12 +116,11 @@ class LogbookRepository(
 
         return if (haulDao != null) {
             try {
-                // 1. Hitung Nomor Haul Berikutnya dari Room DB
                 val currentHauls = haulDao.getAllHaulsWithItems()
                 val nextHaulNumber = (currentHauls.maxOfOrNull { it.haulRecord.haulNumber } ?: 0) + 1
 
-                // 2. Buat Entitas Utama Haul Record
                 val haulEntity = HaulRecordEntity(
+                    noregBkp = noregBkp,
                     haulNumber = nextHaulNumber,
                     timestampFormatted = currentTimeStr,
                     totalWeightKg = totalWeight,
@@ -143,10 +134,8 @@ class LogbookRepository(
                     syncStatus = SyncStatus.OFFLINE_PENDING
                 )
 
-                // 3. Simpan Haul Entity ke Room & Dapatkan Primary Key ID
                 val insertedHaulId = haulDao.insertHaulRecord(haulEntity)
 
-                // 4. Map & Simpan Item Tangkapan terkait
                 val catchEntities = items.map { item ->
                     CatchItemEntity(
                         id = item.id,
@@ -158,9 +147,9 @@ class LogbookRepository(
                 }
                 haulDao.insertCatchItems(catchEntities)
 
-                // 5. Model Domain Hasil
                 val savedRecord = HaulRecord(
                     id = insertedHaulId.toInt(),
+                    noregBkp = noregBkp,
                     haulNumber = nextHaulNumber,
                     timestampFormatted = currentTimeStr,
                     totalWeightKg = totalWeight,
@@ -181,10 +170,10 @@ class LogbookRepository(
                 Result.failure(e)
             }
         } else {
-            // Fallback In-Memory jika DB belum diinisialisasi
             val nextId = (_fallbackHaulHistory.value.maxOfOrNull { it.id } ?: 0) + 1
             val newRecord = HaulRecord(
                 id = nextId,
+                noregBkp = noregBkp,
                 haulNumber = nextId,
                 timestampFormatted = currentTimeStr,
                 totalWeightKg = totalWeight,
@@ -204,12 +193,10 @@ class LogbookRepository(
         }
     }
 
-    /**
-     * Konversi dari Room Relation ke Domain Model HaulRecord
-     */
     private fun HaulWithCatchItems.toDomainModel(): HaulRecord {
         return HaulRecord(
             id = haulRecord.id.toInt(),
+            noregBkp = haulRecord.noregBkp,
             haulNumber = haulRecord.haulNumber,
             timestampFormatted = haulRecord.timestampFormatted,
             totalWeightKg = haulRecord.totalWeightKg,

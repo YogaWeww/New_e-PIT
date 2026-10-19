@@ -7,11 +7,11 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 /**
- * Instansi Utama Room Database e-PIT Mobile (Versi 2 - Mendukung Sesi Akun & Profil Kapal)
+ * Instansi Utama Room Database e-PIT Mobile (Versi 3 - Mendukung Pengikat eBKP pada Data Tawur)
  */
 @Database(
     entities = [HaulRecordEntity::class, CatchItemEntity::class, VesselProfileEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(EPITTypeConverters::class)

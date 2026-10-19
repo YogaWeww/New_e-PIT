@@ -10,7 +10,8 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * CoroutineWorker yang berjalan di latar belakang untuk mengunggah
- * data hauling berstatus OFFLINE_PENDING dari Room DB ke Cloud Firestore.
+ * data hauling berstatus OFFLINE_PENDING dari Room DB ke Cloud Firestore,
+ * lengkap dengan atribut `noregBkp` pengikat identitas kapal.
  */
 class SyncWorker(
     appContext: Context,
@@ -23,7 +24,6 @@ class SyncWorker(
 
     override suspend fun doWork(): Result {
         return try {
-            // 1. Ambil seluruh data hauling berstatus OFFLINE_PENDING dari Room DB
             val pendingHauls = haulDao.getAllHaulsWithItems().filter {
                 it.haulRecord.syncStatus == SyncStatus.OFFLINE_PENDING
             }
@@ -37,6 +37,7 @@ class SyncWorker(
                 val catchItems = haulWithItems.catchItems
 
                 val haulMap = hashMapOf(
+                    "noregBkp" to haulRecord.noregBkp,
                     "haulNumber" to haulRecord.haulNumber,
                     "timestampFormatted" to haulRecord.timestampFormatted,
                     "totalWeightKg" to haulRecord.totalWeightKg,
@@ -57,19 +58,18 @@ class SyncWorker(
                     }
                 )
 
-                // 2. Unggah ke koleksi 'haul_records' di Cloud Firestore
+                // Simpan ke koleksi 'haul_records' di Cloud Firestore
                 firestore.collection("haul_records")
                     .document("HAUL_${haulRecord.id}")
                     .set(haulMap)
                     .await()
 
-                // 3. Perbarui status di Room DB lokal menjadi SYNCED
+                // Perbarui status di Room DB lokal menjadi SYNCED
                 haulDao.updateSyncStatus(haulRecord.id, SyncStatus.SYNCED)
             }
 
             Result.success()
         } catch (e: Exception) {
-            // Jika terjadi kesalahan koneksi di tengah pengiriman, WorkManager akan retry otomatis
             Result.retry()
         }
     }
