@@ -190,11 +190,13 @@ fun EPITMainAppHost(
                 )
             }
 
-            // Rute Alih Muat (Transshipment)
+            // Rute Alih Muat (Transshipment) Standar KKP
             composable(Screen.Transshipment.route) {
                 TransshipmentScreen(
+                    authViewModel = authViewModel,
+                    logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onProceedToLandingReport = {
+                    onTransshipmentSuccess = {
                         navController.navigate(Screen.LandingReport.route)
                     }
                 )
