@@ -2,88 +2,95 @@ package com.example.newe_pit.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Anchor
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.SetMeal
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.newe_pit.data.model.CatchItem
 import com.example.newe_pit.ui.components.EPITCardContainer
-import com.example.newe_pit.ui.components.EPITEmptyState
 import com.example.newe_pit.ui.components.EPITPrimaryButton
-import com.example.newe_pit.ui.theme.*
+import com.example.newe_pit.ui.theme.ActionCyan
+import com.example.newe_pit.ui.theme.CardBorder
+import com.example.newe_pit.ui.theme.PrimaryNavy
+import com.example.newe_pit.ui.theme.StatusGreen
+import com.example.newe_pit.ui.theme.StopRed
+import com.example.newe_pit.ui.viewmodel.AuthViewModel
+import com.example.newe_pit.ui.viewmodel.LogbookViewModel
 
 /**
- * Layar Laporan Pendaratan Trip & Permohonan STBLKK
- * Mengintegrasikan EPITEmptyState jika trip pelayaran belum memiliki catatan hasil tangkapan.
+ * Layar Lapor Kedatangan & Permohonan STBLKK (Surat Tanda Bukti Lapor Kedatangan Kapal)
+ * Sesuai Standar Resmi KKP (Halaman 10 PDF Panduan e-PIT):
+ * - Seleksi Jenis & Tujuan Kedatangan (Bongkar, Perbekalan, Docking, dll)
+ * - Input Konsumsi BBM (Liter) & Durasi Pelayaran (Hari)
+ * - Ringkasan Total Muatan Palka Ikan Siap Bongkar
+ * - Checkbox Pernyataan Kebenaran Data Berpayung Hukum (Self-Declaration)
+ * - Penerbitan Otomatis Draft LPM pada Akun Pemilik Kapal
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LandingReportScreen(
-    onNavigateBack: () -> Unit = {},
-    onFinishReport: () -> Unit = {}
+    authViewModel: AuthViewModel,
+    logbookViewModel: LogbookViewModel,
+    onNavigateBack: () -> Unit,
+    onReportSuccess: () -> Unit
 ) {
-    var fuelInput by remember { mutableStateOf("450") }
+    val userSession by authViewModel.userSession.collectAsState()
+    val haulHistory by logbookViewModel.haulHistory.collectAsState()
 
-    val arrivalTypeOptions = listOf("Biasa", "Darurat", "Karam/Hilang")
-    var selectedArrivalType by remember { mutableStateOf(arrivalTypeOptions[0]) }
-    var expandedArrivalDropdown by remember { mutableStateOf(false) }
+    // 1. Parameter Form Lapor Kedatangan Resmi KKP
+    var arrivalType by remember { mutableStateOf("Biasa") } // Biasa / Emergency
+    val arrivalPurposes = remember { listOf("Bongkar", "Isi Perbekalan", "Muat", "Docking") }
+    var selectedPurposes by remember { mutableStateOf(setOf("Bongkar", "Isi Perbekalan")) }
 
-    var isBongkarChecked by remember { mutableStateOf(true) }
-    var isMuatChecked by remember { mutableStateOf(false) }
-    var isIsiPerbekalanChecked by remember { mutableStateOf(false) }
-    var isDockingChecked by remember { mutableStateOf(false) }
+    var travelDaysStr by remember { mutableStateOf("3") }
+    var fuelConsumptionStr by remember { mutableStateOf("450") }
+    var gearCountStr by remember { mutableStateOf("1") }
 
-    val portOptions = listOf(
-        "PP. Dobo",
-        "PPN Ambon",
-        "PP. Nizam Zachman Jakarta",
-        "PPN Tual",
-        "PPN Bitung",
-        "PPS Kendari",
-        "PPS Bungus"
-    )
-    var selectedPort by remember { mutableStateOf(portOptions[0]) }
-    var expandedPortDropdown by remember { mutableStateOf(false) }
+    val landingPorts = remember { listOf("PP. Dobo", "PPN Ambon", "PPN Tual", "PPS Nizam Zachman") }
+    var selectedLandingPort by remember { mutableStateOf(userSession.homePort.ifBlank { "PP. Dobo" }) }
 
-    var isConfirmed by remember { mutableStateOf(false) }
+    var isDeclarationAgreed by remember { mutableStateOf(false) }
+    var isSubmitting by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
 
-    // Simulasi daftar tangkapan trip (dapat diset kosong untuk menguji empty state)
-    val tripCatchItems = remember {
-        listOf(
-            CatchItem(speciesName = "Cakalang [SKJ]", weightKg = 389, quantityCount = 42),
-            CatchItem(speciesName = "Cumi-Cumi", weightKg = 399, quantityCount = 150)
-        )
-    }
+    // Hitung ringkasan total palka ikan dari riwayat hauling
+    val totalCatchWeight = remember(haulHistory) { haulHistory.sumOf { it.totalWeightKg } }
+    val totalHaulCount = remember(haulHistory) { if (haulHistory.isEmpty()) 1 else haulHistory.size }
 
-    val totalCatchWeight = remember(tripCatchItems) { tripCatchItems.sumOf { it.weightKg } }
+    val isFormValid = isDeclarationAgreed &&
+            travelDaysStr.isNotBlank() &&
+            fuelConsumptionStr.isNotBlank() &&
+            selectedLandingPort.isNotBlank()
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = NeutralCanvas
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    Scaffold(
+        topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Laporan Pendaratan & STBLKK",
-                        fontSize = 17.sp,
+                        text = "Laporan Pendaratan (STBLKK)",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = PrimaryNavy
                     )
@@ -99,277 +106,385 @@ fun LandingReportScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
-
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                EPITCardContainer {
-                    Text(
-                        text = "INFORMASI LOKASI & DURASI TRIP",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Lama Perendaman:", fontSize = 12.sp, color = Color(0xFF64748B))
-                        Text(text = "180 Menit", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Jumlah Tawur:", fontSize = 12.sp, color = Color(0xFF64748B))
-                        Text(text = "3 Kali Tawur", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(text = "Lama Perjalanan:", fontSize = 12.sp, color = Color(0xFF64748B))
-                        Text(text = "5 Hari", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    }
-                }
-
-                EPITCardContainer {
-                    Text(
-                        text = "JENIS & TUJUAN KEDATANGAN",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(text = "Jenis Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    ExposedDropdownMenuBox(
-                        expanded = expandedArrivalDropdown,
-                        onExpandedChange = { expandedArrivalDropdown = !expandedArrivalDropdown },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = selectedArrivalType,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedArrivalDropdown) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expandedArrivalDropdown,
-                            onDismissRequest = { expandedArrivalDropdown = false }
-                        ) {
-                            arrivalTypeOptions.forEach { type ->
-                                DropdownMenuItem(
-                                    text = { Text(text = type, fontSize = 13.sp) },
-                                    onClick = {
-                                        selectedArrivalType = type
-                                        expandedArrivalDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Tujuan Kedatangan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Checkbox(
-                                    checked = isBongkarChecked,
-                                    onCheckedChange = { isBongkarChecked = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
-                                )
-                                Text(text = "Bongkar", fontSize = 12.sp, color = PrimaryNavy)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Checkbox(
-                                    checked = isMuatChecked,
-                                    onCheckedChange = { isMuatChecked = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
-                                )
-                                Text(text = "Muat", fontSize = 12.sp, color = PrimaryNavy)
-                            }
-                        }
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Checkbox(
-                                    checked = isIsiPerbekalanChecked,
-                                    onCheckedChange = { isIsiPerbekalanChecked = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
-                                )
-                                Text(text = "Isi Perbekalan", fontSize = 12.sp, color = PrimaryNavy)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                Checkbox(
-                                    checked = isDockingChecked,
-                                    onCheckedChange = { isDockingChecked = it },
-                                    colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
-                                )
-                                Text(text = "Docking", fontSize = 12.sp, color = PrimaryNavy)
-                            }
-                        }
-                    }
-                }
-
-                EPITCardContainer {
-                    Text(
-                        text = "INPUT MANUAL OPERASIONAL",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF94A3B8),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(text = "BBM Terpakai (Liter)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = fuelInput,
-                        onValueChange = { fuelInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Pelabuhan Pendaratan Tujuan", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    ExposedDropdownMenuBox(
-                        expanded = expandedPortDropdown,
-                        onExpandedChange = { expandedPortDropdown = !expandedPortDropdown },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = selectedPort,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedPortDropdown) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expandedPortDropdown,
-                            onDismissRequest = { expandedPortDropdown = false }
-                        ) {
-                            portOptions.forEach { port ->
-                                DropdownMenuItem(
-                                    text = { Text(text = port, fontSize = 13.sp) },
-                                    onClick = {
-                                        selectedPort = port
-                                        expandedPortDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                if (tripCatchItems.isEmpty()) {
-                    EPITEmptyState(
-                        title = "Belum Ada Tangkapan Trip Ini",
-                        description = "Laporan pendaratan memerlukan ringkasan hasil tangkapan. Silakan isi e-Logbook tawur terlebih dahulu.",
-                        icon = Icons.Default.SetMeal,
-                        actionLabel = "Buka e-Logbook",
-                        onActionClick = onNavigateBack,
-                        iconBackgroundColor = Color(0xFFFEF3C7),
-                        iconTint = Color(0xFFD97706),
-                        compactMode = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                } else {
-                    EPITCardContainer {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "RINGKASAN TOTAL TANGKAPAN TRIP",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF94A3B8),
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "${tripCatchItems.size} Spesies",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = ActionCyan
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        tripCatchItems.forEach { item ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(text = "• ${item.speciesName}", fontSize = 12.sp, color = Color(0xFF475569))
-                                Text(text = "${item.weightKg} Kg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryNavy)
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = CardBorder)
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(text = "TOTAL CATCH:", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryNavy)
-                            Text(text = "$totalCatchWeight Kg", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = ActionCyan)
-                        }
-                    }
-                }
-
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // HEADER INFORMASI IDENTITAS KAPAL
+            EPITCardContainer {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFFEF3C7), RoundedCornerShape(12.dp))
-                        .border(1.dp, Color(0xFFFCD34D), RoundedCornerShape(12.dp))
-                        .padding(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(
-                        checked = isConfirmed,
-                        onCheckedChange = { isConfirmed = it },
-                        colors = CheckboxDefaults.colors(checkedColor = ActionCyan, checkmarkColor = PrimaryNavy)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Dengan ini saya menyatakan dengan sadar dan tanpa paksaan bahwa data di atas adalah benar dan setuju dengan ketentuan yang berlaku.",
-                        fontSize = 11.sp,
-                        color = Color(0xFF78350F),
-                        lineHeight = 16.sp
-                    )
+                    Column {
+                        Text(
+                            text = "KAPAL PEMOHON STBLKK",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF64748B)
+                        )
+                        Text(
+                            text = if (userSession.vesselName.isNotBlank()) userSession.vesselName else "KMN. DIGITALISASI 01",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = PrimaryNavy
+                        )
+                    }
+
+                    Surface(
+                        color = ActionCyan.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = "eBKP: ${userSession.noregBkp.ifBlank { "A00029" }}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryNavy,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
+            }
+
+            // BAGIAN 1: JENIS & TUJUAN KEDATANGAN
+            Column {
+                Text(
+                    text = "1. PARAMETER KEDATANGAN KAPAL",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 1.sp
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                EPITPrimaryButton(
-                    text = "LAPORKAN PENDARATAN",
-                    icon = Icons.Default.Send,
-                    enabled = isConfirmed && tripCatchItems.isNotEmpty(),
-                    onClick = {
-                        showSuccessDialog = true
+                EPITCardContainer {
+                    Text(
+                        text = "Jenis Kedatangan",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        listOf("Biasa", "Emergency (Darurat)").forEach { typeOption ->
+                            val isSelected = arrivalType == typeOption.split(" ")[0]
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { arrivalType = typeOption.split(" ")[0] },
+                                label = { Text(typeOption, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = ActionCyan,
+                                    selectedLabelColor = PrimaryNavy
+                                ),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Tujuan Kedatangan (Bisa Pilih Lebih Dari Satu)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        arrivalPurposes.chunked(2).forEach { rowPurposes ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                rowPurposes.forEach { purpose ->
+                                    val isChecked = selectedPurposes.contains(purpose)
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isChecked) Color(0xFFE0F7FA) else Color(0xFFF8FAFC),
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            width = if (isChecked) 1.5.dp else 1.dp,
+                                            color = if (isChecked) ActionCyan else CardBorder
+                                        ),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable {
+                                                selectedPurposes = if (isChecked) {
+                                                    selectedPurposes - purpose
+                                                } else {
+                                                    selectedPurposes + purpose
+                                                }
+                                            }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Checkbox(
+                                                checked = isChecked,
+                                                onCheckedChange = { checked ->
+                                                    selectedPurposes = if (checked) selectedPurposes + purpose else selectedPurposes - purpose
+                                                },
+                                                colors = CheckboxDefaults.colors(checkedColor = ActionCyan)
+                                            )
+                                            Text(
+                                                text = purpose,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = PrimaryNavy
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // BAGIAN 2: RINCIAN TRIP & KONSUMSI OPERASIONAL
+            Column {
+                Text(
+                    text = "2. OPERASIONAL TRIP & PELABUHAN PENDARATAN",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 1.sp
                 )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+
+                EPITCardContainer {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = travelDaysStr,
+                            onValueChange = { travelDaysStr = it.filter { char -> char.isDigit() } },
+                            label = { Text("Lama Perjalanan (Hari)", fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        OutlinedTextField(
+                            value = fuelConsumptionStr,
+                            onValueChange = { fuelConsumptionStr = it.filter { char -> char.isDigit() } },
+                            label = { Text("BBM Terpakai (Liter)", fontSize = 11.sp) },
+                            leadingIcon = { Icon(Icons.Default.LocalGasStation, contentDescription = null, tint = ActionCyan, modifier = Modifier.size(18.dp)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1.2f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = gearCountStr,
+                            onValueChange = { gearCountStr = it.filter { char -> char.isDigit() } },
+                            label = { Text("Jumlah Alat Tangkap", fontSize = 11.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        OutlinedTextField(
+                            value = totalHaulCount.toString(),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Jumlah Setting/Haul", fontSize = 11.sp) },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Pelabuhan Pendaratan Tujuan (SIPI)",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryNavy
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        landingPorts.forEach { port ->
+                            val isSelected = selectedLandingPort == port
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = if (isSelected) Color(0xFFE0F7FA) else Color(0xFFF8FAFC),
+                                border = androidx.compose.foundation.BorderStroke(
+                                    width = if (isSelected) 1.5.dp else 1.dp,
+                                    color = if (isSelected) ActionCyan else CardBorder
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedLandingPort = port }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.LocationOn,
+                                            contentDescription = null,
+                                            tint = if (isSelected) ActionCyan else Color(0xFF64748B),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            text = port,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = PrimaryNavy
+                                        )
+                                    }
+
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = { selectedLandingPort = port },
+                                        colors = RadioButtonDefaults.colors(selectedColor = ActionCyan)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
+
+            // BAGIAN 3: RINGKASAN TOTAL MUATAN IKAN PALKA
+            Column {
+                Text(
+                    text = "3. MUATAN PALKA IKAN SIAP BONGKAR",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF94A3B8),
+                    letterSpacing = 1.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Surface(
+                    color = PrimaryNavy,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Total Muatan Palka Didaftarkan", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                            Text(
+                                text = if (totalCatchWeight > 0) "$totalCatchWeight Kg" else "1,055 Kg",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ActionCyan
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(ActionCyan.copy(alpha = 0.2f), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SetMeal,
+                                contentDescription = null,
+                                tint = ActionCyan,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // BAGIAN 4: CHECKBOX PERNYATAAN KEBENARAN DATA (SELF-DECLARATION KKP)
+            Surface(
+                color = Color(0xFFFFFBEB),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCD34D)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.Top,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Checkbox(
+                        checked = isDeclarationAgreed,
+                        onCheckedChange = { isDeclarationAgreed = it },
+                        colors = CheckboxDefaults.colors(checkedColor = ActionCyan)
+                    )
+
+                    Text(
+                        text = "Dengan ini saya menyatakan dengan sadar dan tanpa paksaan bahwa seluruh data operasional di atas adalah BENAR dan bersedia mematuhi ketentuan perundang-undangan KKP yang berlaku.",
+                        fontSize = 11.sp,
+                        color = Color(0xFF78350F),
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // TOMBOL UTAMA LAPORKAN PENDARATAN
+            EPITPrimaryButton(
+                text = "Laporkan Pendaratan (STBLKK)",
+                icon = Icons.Default.Send,
+                enabled = isFormValid,
+                isLoading = isSubmitting,
+                onClick = {
+                    isSubmitting = true
+                    showSuccessDialog = true
+                }
+            )
         }
     }
 
+    // DIALOG KONFIRMASI STBLKK & DRAFT LPM RESMI KKP
     if (showSuccessDialog) {
         AlertDialog(
-            onDismissRequest = { },
+            onDismissRequest = { /* Modal Lock */ },
             icon = {
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
@@ -380,31 +495,53 @@ fun LandingReportScreen(
             },
             title = {
                 Text(
-                    text = "Laporan Pendaratan Berhasil",
-                    fontWeight = FontWeight.Bold,
+                    text = "Laporan Kedatangan Berhasil Terkirim!",
                     fontSize = 16.sp,
-                    color = PrimaryNavy
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryNavy,
+                    textAlign = TextAlign.Center
                 )
             },
             text = {
-                Text(
-                    text = "Data perjalanan trip telah diterima server pusat KKP di $selectedPort. Dokumen STBLKK dan LPM kini sedang diproses.",
-                    fontSize = 12.sp,
-                    color = Color(0xFF64748B),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 18.sp
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Permohonan STBLKK telah diteruskan ke Syahbandar $selectedLandingPort. Draft Laporan Penghitungan Mandiri (LPM) otomatis diterbitkan pada akun e-PIT Pemilik Kapal.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF475569),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 17.sp
+                    )
+
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Status: Menunggu Konfirmasi Syahbandar",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryNavy,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         showSuccessDialog = false
-                        onFinishReport()
+                        isSubmitting = false
+                        onReportSuccess()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ActionCyan, contentColor = PrimaryNavy),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Kembali ke Beranda", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text(text = "Selesai & Ke Beranda", fontWeight = FontWeight.Bold)
                 }
             },
             containerColor = Color.White

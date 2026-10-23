@@ -205,14 +205,16 @@ fun EPITMainAppHost(
             // Rute Laporan Pendaratan Trip & STBLKK
             composable(Screen.LandingReport.route) {
                 LandingReportScreen(
+                    authViewModel = authViewModel,
+                    logbookViewModel = logbookViewModel,
                     onNavigateBack = { navController.popBackStack() },
-                    onFinishReport = {
+                    onReportSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Home.route) { inclusive = true }
                         }
                     }
                 )
-            }
+            } 
 
             // Rute Rincian Kuota
             composable(Screen.QuotaDetail.route) {
