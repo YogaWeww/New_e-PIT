@@ -121,27 +121,14 @@ fun EPITMainAppHost(
             composable(Screen.Home.route) {
                 HomeScreen(
                     homeViewModel = homeViewModel,
-                    onNavigateToLogbook = {
-                        navController.navigate(Screen.LogbookStep1.route)
-                    },
-                    onNavigateToHaulHistory = {
-                        navController.navigate(Screen.HaulHistory.route)
-                    },
-                    onNavigateToTransshipment = {
-                        navController.navigate(Screen.Transshipment.route)
-                    },
-                    onNavigateToLandingReport = {
-                        navController.navigate(Screen.LandingReport.route)
-                    },
-                    onNavigateToServiceLinks = {
-                        navController.navigate(Screen.ServiceLinks.route)
-                    },
-                    onNavigateToHelpSupport = {
-                        navController.navigate(Screen.HelpSupport.route)
-                    },
-                    onNavigateToQuotaDetail = {
-                        navController.navigate(Screen.QuotaDetail.route)
-                    }
+                    onNavigateToLogbook = { navController.navigate(Screen.LogbookStep1.route) },
+                    onNavigateToHaulHistory = { navController.navigate(Screen.HaulHistory.route) },
+                    onNavigateToTransshipment = { navController.navigate(Screen.Transshipment.route) },
+                    onNavigateToDepartureReport = { navController.navigate(Screen.DepartureReport.route) },
+                    onNavigateToLandingReport = { navController.navigate(Screen.LandingReport.route) },
+                    onNavigateToServiceLinks = { navController.navigate(Screen.ServiceLinks.route) },
+                    onNavigateToHelpSupport = { navController.navigate(Screen.HelpSupport.route) },
+                    onNavigateToQuotaDetail = { navController.navigate(Screen.QuotaDetail.route) }
                 )
             }
 
@@ -214,7 +201,19 @@ fun EPITMainAppHost(
                         }
                     }
                 )
-            } 
+            }
+
+            composable(Screen.DepartureReport.route) {
+                DepartureReportScreen(
+                    authViewModel = authViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onDepartureSubmitted = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
 
             // Rute Rincian Kuota
             composable(Screen.QuotaDetail.route) {

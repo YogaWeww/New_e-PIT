@@ -46,6 +46,7 @@ fun HomeScreen(
     onNavigateToLogbook: () -> Unit,
     onNavigateToHaulHistory: () -> Unit = {},
     onNavigateToTransshipment: () -> Unit = {},
+    onNavigateToDepartureReport: () -> Unit = {},
     onNavigateToLandingReport: () -> Unit = {},
     onNavigateToServiceLinks: () -> Unit = {},
     onNavigateToHelpSupport: () -> Unit = {},
@@ -106,6 +107,11 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(StatusGreen, CircleShape)
+                    )
                     Box(
                         modifier = Modifier
                             .size(42.dp)
@@ -305,7 +311,7 @@ fun HomeScreen(
                         QuickActionButton(
                             label = "Keberangkatan",
                             icon = Icons.Default.DirectionsBoat,
-                            onClick = { homeViewModel.showToast("Fitur Keberangkatan Kapal") }
+                            onClick = onNavigateToDepartureReport
                         )
                         QuickActionButton(
                             label = "Pendaratan",

@@ -28,6 +28,7 @@ sealed class Screen(val route: String, val title: String) {
     object Transshipment : Screen("transshipment", "Alih Muatan")
     object LandingReport : Screen("landing_report", "Laporan Pendaratan")
     object HaulHistory : Screen("haul_history", "Riwayat Hauling")
+    object DepartureReport : Screen("departure_report", "Laporan Keberangkatan")
 
     // Layanan, Bantuan & Kuota
     object ServiceLinks : Screen("service_links", "Link Layanan")
